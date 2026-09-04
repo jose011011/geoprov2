@@ -1,0 +1,98 @@
+/* Importar fuente moderna y legible (usada por startups y FinTechs) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --geo-primary: #0A192F;      /* Azul Marino Profundo - Transmite Seguridad */
+    --geo-accent: #00BFA6;       /* Verde Menta - Transmite Acción/Inmediatez */
+    --geo-accent-hover: #019985;
+    --geo-bg: #F4F7F6;           /* Gris claro para el fondo */
+    --geo-card: #FFFFFF;
+    --geo-text: #2D3748;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--geo-bg);
+    color: var(--geo-text);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Navbar Sticky y Moderna ===== */
+.geo-navbar {
+    background-color: var(--geo-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 0.8rem 1rem;
+}
+
+.geo-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+    color: #ffffff !important;
+}
+
+.geo-brand i {
+    color: var(--geo-accent);
+    margin-right: 5px;
+}
+
+/* ===== Botones Globales (Efecto App Móvil) ===== */
+.btn {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+}
+
+.btn-success, .btn-primary {
+    background-color: var(--geo-accent);
+    border-color: var(--geo-accent);
+    color: #ffffff;
+}
+
+.btn-success:hover, .btn-primary:hover {
+    background-color: var(--geo-accent-hover);
+    border-color: var(--geo-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 191, 166, 0.25);
+}
+
+.btn-outline-light {
+    border-radius: 12px;
+}
+
+/* ===== Tarjetas (Cards flotantes) ===== */
+.card {
+    background-color: var(--geo-card);
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+}
+
+/* ===== Notificaciones ===== */
+.badge-notif {
+    background-color: #ff4757 !important;
+    border: 2px solid var(--geo-primary);
+    padding: 4px 6px;
+}
+
+/* ===== Sistema de badges de estado unificado ===== */
+.badge-estado {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.badge-pendiente   { background: #fef3c7; color: #92400e; }
+.badge-aceptada    { background: #dbeafe; color: #1e40af; }
+.badge-en_camino   { background: #e0e7ff; color: #3730a3; }
+.badge-en_proceso  { background: #fef3c7; color: #92400e; }
+.badge-finalizada  { background: #d1fae5; color: #065f46; }
+.badge-cancelada   { background: #fee2e2; color: #991b1b; }
