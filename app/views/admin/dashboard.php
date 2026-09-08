@@ -1,365 +1,203 @@
 <?php require_once "../app/views/layouts/header.php"; ?>
 
 <style>
-    /* =========================================
-       ESTILOS PREMIUM - INSPIRADO EN ADMIN TEMPLATES
-       ========================================= */
-    body {
-        background-color: #f4f6f9; /* Fondo gris/azulado muy suave */
-    }
+    /* Ocultamos el header normal */
+    .geo-navbar { display: none !important; }
+    body { background-color: #f3f4f7; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+    /* Layout Principal */
+    .admin-wrapper { display: flex; width: 100%; min-height: 100vh; }
     
-    /* Títulos y textos */
-    .page-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #2b3445;
-        letter-spacing: -0.3px;
+    /* Sidebar Fijo */
+    .admin-sidebar {
+        width: 260px; background-color: #1e1e2d; color: #a2a3b7;
+        position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
+        transition: all 0.3s ease; overflow-y: auto;
     }
-    .text-subtitle {
-        color: #7a8b9a;
-        font-size: 0.85rem;
+    .sidebar-profile { padding: 30px 20px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .sidebar-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #e83e8c; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 10px; border: 3px solid #2b2b40; }
+    .sidebar-profile h6 { color: #ffffff; font-weight: 700; margin-bottom: 2px; }
+    .sidebar-profile p { font-size: 0.75rem; color: #a2a3b7; margin-bottom: 0; }
+
+    .sidebar-menu { padding: 20px 0; list-style: none; margin: 0; }
+    .menu-title { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #6c7293; padding: 10px 25px; letter-spacing: 1px; }
+    .sidebar-menu li a { display: flex; align-items: center; padding: 12px 25px; color: #a2a3b7; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s; border-left: 3px solid transparent; }
+    .sidebar-menu li a i { width: 25px; font-size: 1.1rem; }
+    .sidebar-menu li a:hover { color: #ffffff; background-color: #1b1b29; }
+    .sidebar-menu li a.active { color: #ffffff; background-color: #1b1b29; border-left-color: #e83e8c; }
+
+    /* Contenido Principal */
+    .admin-main-content { flex: 1; margin-left: 260px; min-width: 0; transition: all 0.3s ease; }
+    .admin-topbar { background-color: #ffffff; height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); position: sticky; top: 0; z-index: 999; }
+    .btn-toggle-sidebar { background: none; border: none; font-size: 1.5rem; color: #495057; cursor: pointer; display: none; }
+    .topbar-logout { background: #fef2f2; color: #dc2626; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.2s; }
+    .topbar-logout:hover { background: #dc2626; color: #ffffff; }
+
+    @media (max-width: 991px) {
+        .admin-sidebar { transform: translateX(-100%); }
+        .admin-sidebar.show { transform: translateX(0); }
+        .admin-main-content { margin-left: 0; }
+        .btn-toggle-sidebar { display: block; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+        .sidebar-overlay.show { display: block; }
     }
 
-    /* Tarjetas KPI (Estilo imagen de referencia) */
-    .dashboard-card {
-        background: #ffffff;
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        transition: transform 0.2s;
-    }
-    .dashboard-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    }
+    /* Tarjetas y Tablas */
+    .dashboard-content { padding: 25px; }
+    .page-title { font-weight: 700; color: #3f4254; font-size: 1.5rem; margin-bottom: 20px; }
     
-    /* Bloques de íconos de colores sólidos */
-    .icon-box {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        color: #ffffff;
-        margin-right: 18px;
-        flex-shrink: 0;
-    }
-    .bg-gradient-warning { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
-    .bg-gradient-success { background: linear-gradient(135deg, #84d9d2 0%, #07cdae 100%); }
-    .bg-gradient-info    { background: linear-gradient(135deg, #90CAF9 0%, #007bff 100%); }
-    .bg-gradient-primary { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
-
-    .kpi-text {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        font-weight: 700;
-        color: #7a8b9a;
-        margin-bottom: 2px;
-        letter-spacing: 0.5px;
-    }
-    .kpi-number {
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: #2b3445;
-        line-height: 1;
-    }
-
-    /* Botones de Acción Superiores */
-    .action-btn {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        color: #4a5568;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 8px 16px;
-        transition: all 0.2s;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-    }
-    .action-btn:hover {
-        background: #f8fafc;
-        color: #1a202c;
-        border-color: #cbd5e0;
-    }
-    .action-btn-primary {
-        background: #2b3445;
-        color: #ffffff;
-        border: none;
-    }
-    .action-btn-primary:hover {
-        background: #1a202c;
-        color: #ffffff;
-    }
-
-    /* Contenedor de la Tabla */
-    .table-card {
-        background: #ffffff;
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-        overflow: hidden;
-    }
-    .table-header {
-        padding: 20px 24px;
-        border-bottom: 1px solid #edf2f7;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    /* Pestañas de Filtro Modernas (Tabs) */
-    .nav-filters {
-        display: flex;
-        background: #f1f5f9;
-        padding: 4px;
-        border-radius: 8px;
-    }
-    .nav-filters a {
-        color: #64748b;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 6px 16px;
-        border-radius: 6px;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    .nav-filters a:hover { color: #1e293b; }
-    .nav-filters a.active {
-        background: #ffffff;
-        color: #0ea5e9;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    /* Estilos de la Tabla Corporativa */
-    .custom-table { margin-bottom: 0; }
-    .custom-table th {
-        background-color: #f8fafc;
-        color: #64748b;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 12px 24px;
-        border-bottom: 1px solid #edf2f7;
-    }
-    .custom-table td {
-        padding: 16px 24px;
-        vertical-align: middle;
-        border-bottom: 1px solid #edf2f7;
-        color: #334155;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    .custom-table tbody tr:hover { background-color: #f8fafc; }
-    .custom-table tbody tr:last-child td { border-bottom: none; }
-
-    /* Avatares e Insignias */
-    .avatar-circle {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.85rem;
-        color: #ffffff;
-        margin-right: 12px;
-    }
-    .badge-soft {
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-    }
-    .badge-soft-warning { background: #fef3c7; color: #b45309; }
-    .badge-soft-success { background: #d1fae5; color: #047857; }
-    .badge-soft-danger  { background: #fee2e2; color: #b91c1c; }
+    .kpi-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.03); display: flex; flex-direction: column; border: none; }
+    .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .kpi-number { font-size: 2rem; font-weight: 800; color: #181c32; line-height: 1; }
+    .kpi-label { font-size: 0.8rem; font-weight: 700; color: #b5b5c3; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-icon { padding: 10px; border-radius: 10px; font-size: 1.2rem; color: #fff; }
+    
+    .table-card { background: #fff; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.03); padding: 20px; border: none; overflow: hidden;}
+    .table th { font-size: 0.75rem; text-transform: uppercase; color: #b5b5c3; border-bottom: 1px dashed #ebedf3; padding: 15px 10px; }
+    .table td { vertical-align: middle; border-bottom: 1px dashed #ebedf3; padding: 15px 10px; color: #3f4254; font-weight: 500; font-size: 0.9rem; }
 </style>
 
-<div class="container-fluid py-4 px-lg-5">
-    
-    <!-- Encabezado y Acciones (Top Bar) -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-        <div>
-            <h2 class="page-title mb-0">Panel de Control</h2>
-            <p class="text-subtitle mb-0">Resumen y validación de profesionales - GEO-PRO</p>
-        </div>
-        
-        <div class="d-flex gap-2 mt-3 mt-md-0">
-            <a href="<?= BASE_URL ?>/admin/pagos" class="btn action-btn d-flex align-items-center">
-                <i class="fa-solid fa-qrcode text-success me-2"></i> Pagos QR
-            </a>
-            <a href="<?= BASE_URL ?>/admin/categorias" class="btn action-btn d-flex align-items-center">
-                <i class="fa-solid fa-tags text-info me-2"></i> Categorías
-            </a>
-            <a href="<?= BASE_URL ?>/admin/auditoria" class="btn action-btn action-btn-primary d-flex align-items-center">
-                <i class="fa-solid fa-shield-halved me-2"></i> Logs Auditoría
-            </a>
-        </div>
-    </div>
+<div class="admin-wrapper">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- 4 Tarjetas KPI (Estilo Bloque de Color y Texto) -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3 col-sm-6">
-            <div class="dashboard-card">
-                <div class="icon-box bg-gradient-warning">
-                    <i class="fa-solid fa-user-clock"></i>
-                </div>
-                <div>
-                    <div class="kpi-text">Por Validar</div>
-                    <div class="kpi-number"><?= (int) $stats['pendientes'] ?></div>
-                </div>
-            </div>
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-profile">
+            <div class="sidebar-avatar"><?php echo strtoupper(substr($_SESSION['user_nombre'] ?? 'A', 0, 1)); ?></div>
+            <h6><?= htmlspecialchars($_SESSION['user_nombre'] ?? 'Administrador') ?></h6>
+            <p>Super Administrador</p>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="dashboard-card">
-                <div class="icon-box bg-gradient-success">
-                    <i class="fa-solid fa-user-check"></i>
-                </div>
-                <div>
-                    <div class="kpi-text">Aprobados</div>
-                    <div class="kpi-number"><?= (int) $stats['aprobados'] ?></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="dashboard-card">
-                <div class="icon-box bg-gradient-info">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <div>
-                    <div class="kpi-text">Clientes Activos</div>
-                    <div class="kpi-number"><?= (int) $stats['total_clientes'] ?></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="dashboard-card">
-                <div class="icon-box bg-gradient-primary">
-                    <i class="fa-solid fa-briefcase"></i>
-                </div>
-                <div>
-                    <div class="kpi-text">Servicios Globales</div>
-                    <div class="kpi-number"><?= (int) $stats['total_solicitudes'] ?></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Panel Principal de la Tabla -->
-    <div class="table-card">
-        
-        <!-- Cabecera de la tabla con Filtros Tabs -->
-        <div class="table-header">
-            <div>
-                <h5 class="fw-bold text-dark mb-0" style="font-size: 1.1rem;">Gestión de Profesionales</h5>
-                <span class="text-subtitle">Directorio de postulantes y activos</span>
-            </div>
+        <ul class="sidebar-menu">
+            <li class="menu-title">Resumen</li>
+            <li><a href="<?= BASE_URL ?>/admin/dashboard" class="active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            <li><a href="<?= BASE_URL ?>/admin/auditoria"><i class="fa-solid fa-shield-halved"></i> Auditoría</a></li>
             
-            <div class="nav-filters">
-                <a href="?estado=PENDIENTE" class="<?= $filtroActual === 'PENDIENTE' ? 'active' : '' ?>">
-                    Pendientes
-                </a>
-                <a href="?estado=APROBADO" class="<?= $filtroActual === 'APROBADO' ? 'active' : '' ?>">
-                    Aprobados
-                </a>
-                <a href="?estado=RECHAZADO" class="<?= $filtroActual === 'RECHAZADO' ? 'active' : '' ?>">
-                    Rechazados
-                </a>
+            <li class="menu-title">Gestión de Usuarios</li>
+            <li><a href="<?= BASE_URL ?>/admin/profesionales"><i class="fa-solid fa-users-gear"></i> Profesionales</a></li>
+            <li><a href="<?= BASE_URL ?>/admin/clientes"><i class="fa-solid fa-users"></i> Clientes</a></li>
+            
+            <li class="menu-title">Finanzas y Configuración</li>
+            <li><a href="<?= BASE_URL ?>/admin/pagos"><i class="fa-solid fa-money-check-dollar"></i> Pagos y Tokens</a></li>
+            <li><a href="<?= BASE_URL ?>/admin/planes"><i class="fa-solid fa-gem"></i> Planes (Oro, Plata)</a></li>
+            <li><a href="<?= BASE_URL ?>/admin/categorias"><i class="fa-solid fa-layer-group"></i> Categorías</a></li>
+            <li><a href="<?= BASE_URL ?>/admin/reportes"><i class="fa-solid fa-chart-line"></i> Reportes</a></li>
+        </ul>
+    </aside>
+
+    <main class="admin-main-content">
+        <header class="admin-topbar">
+            <button class="btn-toggle-sidebar" id="btnToggleSidebar"><i class="fa-solid fa-bars"></i></button>
+            <div class="d-none d-md-block"><span class="text-muted fw-bold">Plataforma GEO-PRO v2.0</span></div>
+            <a href="<?= BASE_URL ?>/auth/logout" class="topbar-logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Cerrar sesión</a>
+        </header>
+
+        <div class="dashboard-content">
+            <h3 class="page-title">Dashboard Operativo</h3>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-3 col-6">
+                    <div class="kpi-card" style="border-bottom: 4px solid #f6c23e;">
+                        <div class="kpi-top"><span class="kpi-label">Por Validar</span><div class="kpi-icon" style="background: #f6c23e;"><i class="fa-solid fa-user-clock"></i></div></div>
+                        <div class="kpi-number"><?= (int) ($stats['pendientes'] ?? 0) ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="kpi-card" style="border-bottom: 4px solid #1cc88a;">
+                        <div class="kpi-top"><span class="kpi-label">Aprobados</span><div class="kpi-icon" style="background: #1cc88a;"><i class="fa-solid fa-user-shield"></i></div></div>
+                        <div class="kpi-number"><?= (int) ($stats['aprobados'] ?? 0) ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="kpi-card" style="border-bottom: 4px solid #36b9cc;">
+                        <div class="kpi-top"><span class="kpi-label">Clientes</span><div class="kpi-icon" style="background: #36b9cc;"><i class="fa-solid fa-users"></i></div></div>
+                        <div class="kpi-number"><?= (int) ($stats['total_clientes'] ?? 0) ?></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="kpi-card" style="border-bottom: 4px solid #858796;">
+                        <div class="kpi-top"><span class="kpi-label">Servicios</span><div class="kpi-icon" style="background: #858796;"><i class="fa-solid fa-briefcase"></i></div></div>
+                        <div class="kpi-number"><?= (int) ($stats['total_solicitudes'] ?? 0) ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                    <h5 class="fw-bold mb-0">Control de Profesionales</h5>
+                    <div class="btn-group mt-3 mt-md-0 shadow-sm">
+                        <a href="?estado=PENDIENTE" class="btn btn-sm btn-outline-warning <?= ($filtroActual ?? '') === 'PENDIENTE' ? 'active' : '' ?>">Pendientes</a>
+                        <a href="?estado=APROBADO" class="btn btn-sm btn-outline-success <?= ($filtroActual ?? '') === 'APROBADO' ? 'active' : '' ?>">Aprobados</a>
+                        <a href="?estado=RECHAZADO" class="btn btn-sm btn-outline-danger <?= ($filtroActual ?? '') === 'RECHAZADO' ? 'active' : '' ?>">Rechazados</a>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Profesional</th>
+                                <th>Especialidad</th>
+                                <th>Clasificación</th>
+                                <th>Plan / Nivel</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (isset($profesionales) && is_array($profesionales)): ?>
+                                <?php foreach ($profesionales as $p): ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark"><?= htmlspecialchars(($p['nombre'] ?? '') . ' ' . ($p['apellido'] ?? '')) ?></div>
+                                            <small class="text-muted">CI/NIT: <?= htmlspecialchars($p['numero_documento'] ?? 'S/N') ?></small>
+                                        </td>
+                                        <td><span class="badge bg-light text-secondary border"><?= htmlspecialchars($p['nombre_categoria'] ?? 'Sin Categoría') ?></span></td>
+                                        <td>
+                                            <?php if (($p['tipo_prestador'] ?? '') === 'TECNICO_PROFESIONAL'): ?>
+                                                <span class="text-primary fw-bold small"><i class="fa-solid fa-user-graduate"></i> Profesional</span>
+                                            <?php else: ?>
+                                                <span class="text-warning text-dark fw-bold small"><i class="fa-solid fa-hammer"></i> Empírico</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                                // Convertir el nombre del plan a un formato amigable (ej: GRATUITO_TOKENS -> Gratuito Tokens)
+                                                $nombrePlan = str_replace('_', ' ', htmlspecialchars($p['nombre_plan'] ?? 'Básico')); 
+                                            ?>
+                                            <span class="badge bg-dark text-white fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> <?= ucwords(strtolower($nombrePlan)) ?></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill <?= claseBadgeEstado($p['estado_validacion'] ?? '') ?>"><?= htmlspecialchars($p['estado_validacion'] ?? 'PENDIENTE') ?></span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="<?= BASE_URL ?>/admin/verProfesional/<?= $p['id_profesional'] ?? 0 ?>" class="btn btn-sm <?= ($p['estado_validacion'] ?? '') === 'PENDIENTE' ? 'btn-primary' : 'btn-light border text-dark' ?> fw-bold px-3">
+                                                <?= ($p['estado_validacion'] ?? '') === 'PENDIENTE' ? 'Revisar' : 'Ver Perfil' ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <?php if (empty($profesionales)): ?>
+                                <tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa-solid fa-folder-open fa-2x mb-2 opacity-50"></i><br>No hay registros.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
-        <!-- Tabla de Datos -->
-        <div class="table-responsive">
-            <table class="table custom-table">
-                <thead>
-                    <tr>
-                        <th>Profesional</th>
-                        <th>Especialidad</th>
-                        <th>Clasificación</th>
-                        <th>Zona Base</th>
-                        <th>Estado</th>
-                        <th class="text-end">Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($profesionales as $p): ?>
-                        <?php 
-                            // Generar colores aleatorios para los avatares según la inicial
-                            $colores = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
-                            $inicial = strtoupper(substr($p['nombre'], 0, 1));
-                            $colorIndex = ord($inicial) % count($colores);
-                            $bgColor = $colores[$colorIndex];
-                        ?>
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle" style="background-color: <?= $bgColor ?>;">
-                                        <?= strtoupper(substr($p['nombre'], 0, 1) . substr($p['apellido'], 0, 1)) ?>
-                                    </div>
-                                    <div>
-                                        <div class="text-dark fw-bold"><?= htmlspecialchars($p['nombre'] . ' ' . $p['apellido']) ?></div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">Doc: <?= htmlspecialchars($p['numero_documento'] ?? 'S/N') ?></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="text-secondary"><?= htmlspecialchars($p['nombre_categoria']) ?></span>
-                            </td>
-                            <td>
-                                <?php if ($p['tipo_prestador'] === 'TECNICO_PROFESIONAL'): ?>
-                                    <span class="text-primary" style="font-size: 0.85rem;"><i class="fa-solid fa-circle-check me-1"></i> Profesional</span>
-                                <?php else: ?>
-                                    <span class="text-warning text-dark" style="font-size: 0.85rem;"><i class="fa-solid fa-hammer me-1"></i> Empírico</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <span class="text-muted"><i class="fa-solid fa-map-pin me-1 opacity-50"></i> <?= htmlspecialchars($p['macrodistrito_base']) ?></span>
-                            </td>
-                            <td>
-                                <?php
-                                    $badgeClass = 'badge-soft-warning';
-                                    if ($p['estado_validacion'] === 'APROBADO') $badgeClass = 'badge-soft-success';
-                                    if ($p['estado_validacion'] === 'RECHAZADO') $badgeClass = 'badge-soft-danger';
-                                ?>
-                                <span class="badge-soft <?= $badgeClass ?>">
-                                    <?= htmlspecialchars($p['estado_validacion']) ?>
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <a href="<?= BASE_URL ?>/admin/verProfesional/<?= $p['id_profesional'] ?>" class="btn action-btn px-3">
-                                    <?php if ($p['estado_validacion'] === 'PENDIENTE'): ?>
-                                        <i class="fa-solid fa-file-signature text-primary"></i> Revisar
-                                    <?php else: ?>
-                                        <i class="fa-solid fa-arrow-right"></i> Ver Perfil
-                                    <?php endif; ?>
-                                </a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-
-                    <?php if (empty($profesionales)): ?>
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="60" class="mb-3 opacity-50" alt="No data">
-                                <h6 class="text-muted fw-bold">No hay registros</h6>
-                                <p class="text-muted small mb-0">No se encontraron profesionales en la pestaña seleccionada.</p>
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    </main>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const btnToggle = document.getElementById('btnToggleSidebar');
+    const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function toggleMenu() { sidebar.classList.toggle('show'); overlay.classList.toggle('show'); }
+    if(btnToggle) btnToggle.addEventListener('click', toggleMenu);
+    if(overlay) overlay.addEventListener('click', toggleMenu);
+});
+</script>
 
 <?php require_once "../app/views/layouts/footer.php"; ?>

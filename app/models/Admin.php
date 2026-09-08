@@ -157,4 +157,56 @@ public function toggleCategoria(int $idCategoria): void {
     $stmt = $this->db->prepare("UPDATE categorias SET estado = NOT estado WHERE id_categoria = :id");
     $stmt->execute([':id' => $idCategoria]);
 }
+
+// ================= REPORTE 1: FINANCIERO MENSUAL =================
+    public function reporteFinancieroMes() {
+        $db = Database::getInstance()->getConnection();
+        // Usamos fecha_pago (o fecha_registro si así está en tu BD)
+        $stmt = $db->query("
+            SELECT 
+                DATE_FORMAT(fecha_pago, '%Y-%m') AS mes,
+                tipo_transaccion,
+                COUNT(id_transaccion) AS cantidad_ventas,
+                COALESCE(SUM(monto), 0) AS total_recaudado
+            FROM transacciones_suscripcion
+            WHERE estado_pago = 'CONFIRMADO'
+            GROUP BY mes, tipo_transaccion
+            ORDER BY mes DESC
+            LIMIT 12
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+// ================= REPORTE 2: OFICIOS MÁS DEMANDADOS =================
+    public function reporteDemandaCategorias() {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->query("
+            SELECT 
+                c.nombre_categoria, 
+                COUNT(s.id_solicitud) AS total_solicitudes
+            FROM categorias c
+            LEFT JOIN profesionales p ON c.id_categoria = p.id_categoria
+            LEFT JOIN solicitudes_servicio s ON p.id_profesional = s.id_profesional
+            GROUP BY c.id_categoria
+            ORDER BY total_solicitudes DESC
+            LIMIT 5
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+// ================= REPORTE 3: TOP PROFESIONALES (Usando tu Vista SQL) =================
+    public function reporteTopProfesionales() {
+        $db = Database::getInstance()->getConnection();
+        // Usamos tu vista vw_metricas_profesionales que ya calcula las estrellas
+        $stmt = $db->query("
+            SELECT 
+                nombre_completo, 
+                nombre_categoria,
+                promedio_estrellas,
+                total_servicios_atendidos AS trabajos_completados
+            FROM vw_metricas_profesionales
+            WHERE estado_validacion = 'APROBADO'
+            ORDER BY total_servicios_atendidos DESC, promedio_estrellas DESC
+            LIMIT 10
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
