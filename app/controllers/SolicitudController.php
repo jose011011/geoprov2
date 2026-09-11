@@ -162,10 +162,13 @@ $this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int)$profesion
         $idSolicitud = (int) $idSolicitud;
         $solicitud = $this->solicitudModel->obtenerPorId($idSolicitud);
 
+        // Si la solicitud no existe o no está FINALIZADA, redirige
         if (!$solicitud || $solicitud['estado_servicio'] !== 'FINALIZADA') {
             header("Location: " . BASE_URL . "/solicitud/misSolicitudes");
             exit;
         }
+
+        // Si ya fue calificada, redirige al detalle
         if ($calificacionModel->yaCalificada($idSolicitud)) {
             header("Location: " . BASE_URL . "/solicitud/detalle/" . $idSolicitud);
             exit;
@@ -182,7 +185,7 @@ $this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int)$profesion
                     (int) ($_POST['calidad_trabajo'] ?? 0),
                     $_POST['comentario'] ?? null
                 );
-                header("Location: " . BASE_URL . "/solicitud/detalle/" . $idSolicitud . "?calificado=1");
+                header("Location: " . BASE_URL . "/cliente/dashboard?calificado=1");
                 exit;
             } catch (Exception $e) {
                 $error = $e->getMessage();
@@ -195,6 +198,39 @@ $this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int)$profesion
             'error'     => $error
         ]);
     }
+
+
+
+    public function guardarCalificacion() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header("Location: " . BASE_URL . "/cliente/historial");
+        exit;
+    }
+
+    $idSolicitud = (int)($_POST['id_solicitud'] ?? 0);
+    $puntuacion = (int)($_POST['puntuacion_general'] ?? 5);
+    $comentario = trim($_POST['comentario'] ?? '');
+
+    if ($idSolicitud > 0 && $puntuacion >= 1 && $puntuacion <= 5) {
+        $db = Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("
+            INSERT INTO calificaciones (id_solicitud, puntuacion_general, puntualidad, calidad_trabajo, comentario)
+            VALUES (:id_sol, :puntos, 5, 5, :comentario)
+            ON DUPLICATE KEY UPDATE 
+                puntuacion_general = VALUES(puntuacion_general),
+                comentario = VALUES(comentario)
+        ");
+        $stmt->execute([
+            ':id_sol' => $idSolicitud,
+            ':puntos' => $puntuacion,
+            ':comentario' => $comentario
+        ]);
+    }
+
+    header("Location: " . BASE_URL . "/cliente/solicitudDetalle/" . $idSolicitud . "?success=calificado");
+    exit;
+}
 
     // SPRINT 2.5: Pantalla del Profesional para emitir GPS
     public function mapaViaje($idSolicitud = null) {

@@ -10,41 +10,28 @@
     .pro-wrapper { display: flex; width: 100%; min-height: 100vh; }
     
     /* SIDEBAR DEL PROFESIONAL */
-    .pro-sidebar {
-        width: 260px; background-color: #0f172a; color: #94a3b8;
-        position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
-        transition: all 0.3s ease; overflow-y: auto; border-right: 1px solid #1e293b;
-    }
-    .sidebar-brand {
-        padding: 25px 20px; text-align: center; border-bottom: 1px solid #1e293b;
-        color: #ffffff; font-size: 1.5rem; font-weight: 900; letter-spacing: 1px;
-    }
+    .pro-sidebar { width: 260px; background-color: #0f172a; color: #94a3b8; position: fixed; top: 0; left: 0; bottom: 0; height: 100vh; z-index: 1000; transition: all 0.3s ease; overflow-y: auto; border-right: 1px solid #1e293b; padding-bottom: 50px;}
+    .pro-sidebar::-webkit-scrollbar { width: 6px; }
+    .pro-sidebar::-webkit-scrollbar-track { background: transparent; }
+    .pro-sidebar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 10px; }
+
+    .sidebar-brand { padding: 25px 20px; text-align: center; border-bottom: 1px solid #1e293b; color: #ffffff; font-size: 1.5rem; font-weight: 900; letter-spacing: 1px; }
     .sidebar-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid #1e293b; }
-    .sidebar-avatar {
-        width: 80px; height: 80px; border-radius: 50%; background-color: #3b82f6; color: white;
-        display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold;
-        margin: 0 auto 15px; border: 4px solid #1e293b;
-    }
+    .sidebar-avatar { width: 80px; height: 80px; border-radius: 50%; background-color: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; margin: 0 auto 15px; border: 4px solid #1e293b; }
     .sidebar-profile h6 { color: #f8fafc; font-weight: 700; margin-bottom: 5px; font-size: 1.1rem; }
     .sidebar-profile p { font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; }
     
     .plan-badge { background: #334155; color: #f59e0b; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border: 1px solid #475569; }
 
     .sidebar-menu { padding: 20px 0; list-style: none; margin: 0; }
-    .sidebar-menu li a {
-        display: flex; align-items: center; padding: 14px 25px; color: #cbd5e1; text-decoration: none;
-        font-size: 0.95rem; font-weight: 500; transition: all 0.2s; border-left: 4px solid transparent;
-    }
+    .sidebar-menu li a { display: flex; align-items: center; padding: 14px 25px; color: #cbd5e1; text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: all 0.2s; border-left: 4px solid transparent; }
     .sidebar-menu li a i { width: 30px; font-size: 1.2rem; }
     .sidebar-menu li a:hover { color: #ffffff; background-color: #1e293b; }
     .sidebar-menu li a.active { color: #ffffff; background-color: #1e293b; border-left-color: #3b82f6; }
 
     /* CONTENIDO PRINCIPAL */
     .pro-main-content { flex: 1; margin-left: 260px; min-width: 0; transition: all 0.3s ease; }
-    .pro-topbar {
-        background-color: #ffffff; height: 75px; display: flex; align-items: center; justify-content: space-between;
-        padding: 0 30px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 999;
-    }
+    .pro-topbar { background-color: #ffffff; height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 15px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 999; }
     
     .btn-toggle-sidebar { background: none; border: none; font-size: 1.5rem; color: #475569; cursor: pointer; display: none; }
     .tokens-display { background: #fef3c7; border: 1px solid #fde68a; color: #d97706; padding: 8px 20px; border-radius: 12px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 10px; }
@@ -71,6 +58,13 @@
     .stat-value { font-size: 2.2rem; font-weight: 900; color: #0f172a; line-height: 1; margin-bottom: 5px; }
     .stat-label { font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
 
+    /* Banner "Modo Cliente" */
+    .client-mode-banner { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 20px; padding: 25px 30px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    .client-mode-banner h4 { font-weight: 800; margin-bottom: 5px; }
+    .client-mode-banner p { color: #94a3b8; margin: 0; font-size: 0.95rem; }
+    .btn-client-mode { background: #3b82f6; color: white; border: none; padding: 12px 25px; border-radius: 12px; font-weight: 800; text-decoration: none; transition: all 0.3s; display: inline-block; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+    .btn-client-mode:hover { background: #2563eb; color: white; transform: translateY(-2px); }
+
     /* Panel Central: Mapa y Disponibilidad */
     .radar-card { background: #fff; border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; display: flex; flex-direction: column; }
     .radar-header { padding: 25px 30px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
@@ -96,25 +90,38 @@
     <!-- Overlay para móviles -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- 1. SIDEBAR DEL PROFESIONAL -->
+    <!-- 1. SIDEBAR DEL PROFESIONAL (Actualizado con todos los enlaces correctos) -->
     <aside class="pro-sidebar" id="proSidebar">
         <div class="sidebar-brand">
             <i class="fa-solid fa-location-crosshairs text-primary"></i> GEO-PRO
         </div>
         
         <div class="sidebar-profile">
-            <div class="sidebar-avatar"><?= strtoupper(substr($profesional['nombre'] ?? 'P', 0, 1)) ?></div>
-            <h6><?= htmlspecialchars($profesional['nombre'] ?? 'Profesional') ?></h6>
-            <p><?= htmlspecialchars($profesional['nombre_categoria'] ?? 'Técnico') ?></p>
-            <span class="plan-badge"><i class="fa-solid fa-gem"></i> Plan <?= htmlspecialchars(str_replace('_', ' ', $profesional['nombre_plan'] ?? 'Básico')) ?></span>
+            <div class="sidebar-avatar"><?= strtoupper(substr($perfil['nombre'] ?? 'P', 0, 1)) ?></div>
+            <h6><?= htmlspecialchars($perfil['nombre'] ?? 'Profesional') ?></h6>
+            <p><?= htmlspecialchars($perfil['nombre_categoria'] ?? 'Técnico') ?></p>
+            <span class="plan-badge"><i class="fa-solid fa-gem"></i> Plan <?= htmlspecialchars(str_replace('_', ' ', $perfil['nombre_plan'] ?? 'Básico')) ?></span>
         </div>
 
         <ul class="sidebar-menu">
             <li><a href="<?= BASE_URL ?>/profesional/dashboard" class="active"><i class="fa-solid fa-satellite-dish"></i> Centro de Mando</a></li>
-            <li><a href="<?= BASE_URL ?>/profesional/solicitudes"><i class="fa-solid fa-inbox"></i> Solicitudes Recibidas</a></li>
-            <li><a href="<?= BASE_URL ?>/profesional/historial"><i class="fa-solid fa-clock-rotate-left"></i> Historial de Trabajos</a></li>
-            <li><a href="<?= BASE_URL ?>/profesional/comprar-tokens"><i class="fa-solid fa-coins"></i> Comprar Tokens</a></li>
-            <li><a href="<?= BASE_URL ?>/profesional/perfil"><i class="fa-solid fa-user-gear"></i> Mi Perfil Público</a></li>
+            <li><a href="<?= BASE_URL ?>/profesional/solicitudes"><i class="fa-solid fa-inbox"></i> Alertas de Trabajo</a></li>
+            <li><a href="<?= BASE_URL ?>/profesional/historial"><i class="fa-solid fa-clock-rotate-left"></i> Historial</a></li>
+            
+            <!-- ENLACES CORREGIDOS -->
+            
+            <li><a href="<?= BASE_URL ?>/profesional/comprarTokens"><i class="fa-solid fa-coins"></i> Comprar Tokens</a></li>
+            
+            <li><a href="<?= BASE_URL ?>/profesional/perfil"><i class="fa-solid fa-user-gear"></i> Mi Perfil</a></li>
+
+<!-- SEPARADOR Y BOTÓN DE MODO DUAL -->
+            <li class="menu-title mt-4">Modo Dual</li>
+            <li>
+                <a href="<?= BASE_URL ?>/cliente/dashboard" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 10px; margin: 0 15px;">
+                    <i class="fa-solid fa-repeat"></i> Cambiar a Cliente
+                </a>
+            </li>
+
             <li><a href="<?= BASE_URL ?>/auth/logout" class="text-danger mt-4"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</a></li>
         </ul>
     </aside>
@@ -131,7 +138,7 @@
             
             <div class="tokens-display shadow-sm" title="Tokens Disponibles para aceptar trabajos">
                 <i class="fa-solid fa-coins fa-beat"></i> 
-                <span><?= (int)($profesional['tokens_disponibles'] ?? 0) ?> Tokens</span>
+                <span><?= (int)($perfil['tokens_disponibles'] ?? 0) ?> Tokens</span>
             </div>
         </header>
 
@@ -145,7 +152,7 @@
                     <div class="stat-card">
                         <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-star"></i></div>
                         <div>
-                            <div class="stat-value"><?= number_format((float)($profesional['promedio_estrellas'] ?? 5.0), 1) ?></div>
+                            <div class="stat-value"><?= number_format((float)($perfil['promedio_estrellas'] ?? 5.0), 1) ?></div>
                             <div class="stat-label">Reputación</div>
                         </div>
                     </div>
@@ -170,6 +177,19 @@
                 </div>
             </div>
 
+            <!-- NUEVO: BANNER MODO CLIENTE -->
+            <div class="client-mode-banner">
+                <div>
+                    <h4><i class="fa-solid fa-toolbox text-primary me-2"></i> ¿Necesitas a otro especialista?</h4>
+                    <p>Usa la plataforma como cliente y contrata a un colega verificado de GEO-PRO.</p>
+                </div>
+                <div>
+                    <a href="<?= BASE_URL ?>/profesional/pedirServicio" class="btn-client-mode">
+                        Pedir Asistencia Técnica
+                    </a>
+                </div>
+            </div>
+
             <!-- Panel del Mapa y Control de Disponibilidad -->
             <div class="radar-card">
                 <div class="radar-header">
@@ -181,16 +201,16 @@
                     <div class="status-toggle shadow-sm">
                         <span class="status-text" id="statusOff">Desconectado</span>
                         <label class="switch">
-                            <input type="checkbox" id="toggleAvailability" <?= ($profesional['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'checked' : '' ?>>
+                            <input type="checkbox" id="toggleAvailability" <?= ($perfil['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'checked' : '' ?>>
                             <span class="slider"></span>
                         </label>
-                        <span class="status-text <?= ($profesional['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'active' : '' ?>" id="statusOn">¡Disponible!</span>
+                        <span class="status-text <?= ($perfil['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'active' : '' ?>" id="statusOn">¡Disponible!</span>
                     </div>
                 </div>
 
                 <div class="map-container">
                     <!-- Overlay de Protección (Bloquea el mapa si está desconectado) -->
-                    <div class="map-overlay <?= ($profesional['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'hidden' : '' ?>" id="mapOverlay">
+                    <div class="map-overlay <?= ($perfil['estado_disponibilidad'] ?? '') === 'DISPONIBLE' ? 'hidden' : '' ?>" id="mapOverlay">
                         <i class="fa-solid fa-power-off fa-4x text-muted mb-3 opacity-50"></i>
                         <h3 class="fw-bold text-dark">Estás Desconectado</h3>
                         <p class="text-muted">Enciende tu disponibilidad en el interruptor de arriba para empezar a recibir clientes en La Paz.</p>
@@ -219,9 +239,9 @@ document.addEventListener("DOMContentLoaded", function() {
     if(btnToggle) btnToggle.addEventListener('click', toggleMenu);
     if(overlay) overlay.addEventListener('click', toggleMenu);
 
-    // 2. Inicialización del Mapa de Trabajo (Centrado en La Paz por defecto)
-    const latBase = <?= $profesional['latitud_actual'] ?? -16.5000 ?>;
-    const lngBase = <?= $profesional['longitud_actual'] ?? -68.1500 ?>;
+    // 2. Inicialización del Mapa de Trabajo
+    const latBase = <?= $perfil['latitud_actual'] ?? -16.5000 ?>;
+    const lngBase = <?= $perfil['longitud_actual'] ?? -68.1500 ?>;
     
     const mapa = L.map('radarMap', { zoomControl: true }).setView([latBase, lngBase], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -250,14 +270,27 @@ document.addEventListener("DOMContentLoaded", function() {
             statusOn.classList.add('active');
             statusOff.classList.remove('active');
             mapOverlay.classList.add('hidden');
-            // Aquí iría el AJAX para actualizar a DISPONIBLE en BD
-            console.log("Sistema Activado. Buscando clientes...");
+            
+            // Petición AJAX para actualizar la base de datos
+            fetch('<?= BASE_URL ?>/profesional/toggleDisponibilidad', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'estado=DISPONIBLE'
+            }).then(response => response.json())
+              .then(data => console.log('Activado', data));
+
         } else {
             statusOn.classList.remove('active');
             statusOff.classList.add('active');
             mapOverlay.classList.remove('hidden');
-            // Aquí iría el AJAX para actualizar a NO_DISPONIBLE en BD
-            console.log("Sistema Desactivado.");
+            
+            // Petición AJAX
+            fetch('<?= BASE_URL ?>/profesional/toggleDisponibilidad', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'estado=NO_DISPONIBLE'
+            }).then(response => response.json())
+              .then(data => console.log('Desactivado', data));
         }
     });
 });

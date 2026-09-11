@@ -71,12 +71,12 @@ class Membresia {
                 $plan = $this->obtenerPlanPorId((int) $trans['id_plan']);
                 $stmtUp = $this->db->prepare("
                     UPDATE profesionales
-                    SET id_plan = :id_plan, tokens_disponibles = :tokens, fin_suscripcion = DATE_ADD(NOW(), INTERVAL 30 DAY)
+                    SET id_plan = :id_plan, tokens_disponibles = tokens_disponibles + :tokens, fin_suscripcion = DATE_ADD(NOW(), INTERVAL 30 DAY)
                     WHERE id_profesional = :id_prof
                 ");
                 $stmtUp->execute([
                     ':id_plan' => $trans['id_plan'],
-                    ':tokens'  => $plan['tokens_mensuales'],
+                    ':tokens'  => $plan['tokens_otorgados'],
                     ':id_prof' => $trans['id_profesional']
                 ]);
             } elseif ($trans['tipo_transaccion'] === 'PAQUETE_TOKENS') {

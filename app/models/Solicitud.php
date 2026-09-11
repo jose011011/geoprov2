@@ -66,26 +66,32 @@ class Solicitud {
         return $stmt->fetchAll();
     }
 
-    public function listarPorProfesional(int $idProfesional, ?string $estado = null): array {
+   public function listarPorProfesional($idProfesional, $estado = null) {
+        $db = Database::getInstance()->getConnection();
+        
+        // Hacemos JOIN con clientes y usuarios para traer el nombre real
         $sql = "
-            SELECT s.id_solicitud, s.codigo_seguimiento, s.descripcion_problema, s.direccion_servicio,
-                   s.zona, s.estado_servicio, s.fecha_solicitud,
-                   u.nombre AS cliente_nombre, u.apellido AS cliente_apellido, u.celular AS cliente_celular
+            SELECT s.*, 
+                   u.nombre AS cliente_nombre, 
+                   u.apellido AS cliente_apellido
             FROM solicitudes_servicio s
-            INNER JOIN clientes cl ON s.id_cliente = cl.id_cliente
-            INNER JOIN usuarios u ON cl.id_usuario = u.id_usuario
-            WHERE s.id_profesional = :id_prof
+            INNER JOIN clientes c ON s.id_cliente = c.id_cliente
+            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+            WHERE s.id_profesional = :id_profesional
         ";
-        $params = [':id_prof' => $idProfesional];
-        if ($estado) {
+        
+        $params = [':id_profesional' => $idProfesional];
+
+        if ($estado && $estado !== 'TODAS') {
             $sql .= " AND s.estado_servicio = :estado";
             $params[':estado'] = $estado;
         }
-        $sql .= " ORDER BY s.fecha_solicitud DESC";
 
-        $stmt = $this->db->prepare($sql);
+        $sql .= " ORDER BY s.fecha_solicitud DESC";
+        
+        $stmt = $db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // SPRINT 1: LÓGICA DE TRANSACCIONES Y TOKENS (ACID)
@@ -148,5 +154,6 @@ class Solicitud {
             $this->db->rollBack();
             throw $e;
         }
+    
     }
 }

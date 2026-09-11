@@ -13,18 +13,8 @@ class Calificacion {
     }
 
     public function crear(int $idSolicitud, int $idClienteUsuario, int $puntuacion, int $puntualidad, int $calidad, ?string $comentario): void {
-        // Verifica que la solicitud sea del cliente, esté FINALIZADA y sin calificar
-        $stmt = $this->db->prepare("
-            SELECT s.id_solicitud
-            FROM solicitudes_servicio s
-            INNER JOIN clientes cl ON s.id_cliente = cl.id_cliente
-            WHERE s.id_solicitud = :id_sol AND cl.id_usuario = :id_user AND s.estado_servicio = 'FINALIZADA'
-            LIMIT 1
-        ");
-        $stmt->execute([':id_sol' => $idSolicitud, ':id_user' => $idClienteUsuario]);
-        if (!$stmt->fetch()) {
-            throw new Exception("Esta solicitud no puede ser calificada.");
-        }
+        // Nota: el controlador ya verificó que la solicitud es FINALIZADA y pertenece al cliente
+        // Solo validamos que no esté ya calificada y que los valores sean correctos
         if ($this->yaCalificada($idSolicitud)) {
             throw new Exception("Ya has calificado este servicio.");
         }
@@ -46,4 +36,5 @@ class Calificacion {
             ':comentario' => $comentario ? trim($comentario) : null
         ]);
     }
+
 }

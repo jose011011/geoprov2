@@ -156,65 +156,337 @@ class ProfesionalController extends Controller {
         ]);
     }
 
-    /* ========================================================
-       7. CAMBIO DE ESTADO (Aceptar, En Camino, Finalizar)
+   /* ========================================================
+       7. CAMBIO DE ESTADO (Protegido contra botones fantasma)
        ======================================================== */
     public function cambiarEstadoSolicitud() {
-        require_once "../app/models/Solicitud.php";
-        require_once "../app/models/Usuario.php";
-        require_once "../app/models/Notificacion.php";
-
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: " . BASE_URL . "/profesional/solicitudes");
             exit;
         }
 
-        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
-        $solicitudModel = new Solicitud();
-        $usuarioModel = new Usuario();
-        $notifModel = new Notificacion();
-
         $idSolicitud = (int) ($_POST['id_solicitud'] ?? 0);
         $nuevoEstado = $_POST['estado'] ?? '';
+        $tiempoLlegada = (int) ($_POST['tiempo_estimado'] ?? 0);
+        $precioAcordado = (float) ($_POST['precio_acordado'] ?? 0);
 
         try {
-            // 1. Actualizar estado en la Base de Datos
-            $solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int) $perfil['id_profesional']);
-            
-            // 2. Registrar en Logs de Auditoría
-            $usuarioModel->auditar((int) $_SESSION['user_id'], 'CAMBIO_ESTADO_' . $nuevoEstado, 'solicitudes_servicio', $idSolicitud);
-
-            // 3. Notificar al Cliente
             $db = Database::getInstance()->getConnection();
-            $stmtCli = $db->prepare("
-                SELECT u.id_usuario FROM solicitudes_servicio s
-                INNER JOIN clientes cl ON s.id_cliente = cl.id_cliente
-                INNER JOIN usuarios u ON cl.id_usuario = u.id_usuario
-                WHERE s.id_solicitud = :id
-            ");
-            $stmtCli->execute([':id' => $idSolicitud]);
-            $idUsuarioCliente = $stmtCli->fetchColumn();
+            
+            // Lógica de Tokens: Descontar 1 token si acepta el trabajo
+            if ($nuevoEstado === 'ACEPTADA') {
+                $stmtToken = $db->prepare("SELECT tokens_disponibles FROM profesionales WHERE id_usuario = :id_user FOR UPDATE");
+                $stmtToken->execute([':id_user' => $_SESSION['user_id']]);
+                $prof = $stmtToken->fetch();
 
-            if ($idUsuarioCliente) {
-                $mensajes = [
-                    'ACEPTADA'   => 'Tu solicitud fue aceptada por el profesional. Revisa los detalles.',
-                    'EN_CAMINO'  => '¡Prepárate! El profesional está en camino a tu domicilio.',
-                    'EN_PROCESO' => 'El profesional ha iniciado la asistencia técnica.',
-                    'FINALIZADA' => 'Tu servicio ha concluido. ¡Por favor califica al profesional!',
-                    'CANCELADA'  => 'La solicitud ha sido cancelada.'
-                ];
-                if (isset($mensajes[$nuevoEstado])) {
-                    $notifModel->crear((int) $idUsuarioCliente, 'CAMBIO_ESTADO', $mensajes[$nuevoEstado], BASE_URL . '/solicitud/detalle/' . $idSolicitud);
+                if (!$prof || $prof['tokens_disponibles'] <= 0) {
+                    die("<h2 style='color:red;'>Error: No tienes tokens suficientes. Recarga tu membresía.</h2>");
                 }
+
+                $stmtUpdateToken = $db->prepare("UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_usuario = :id_user");
+                $stmtUpdateToken->execute([':id_user' => $_SESSION['user_id']]);
+            }
+            
+            $sql = "UPDATE solicitudes_servicio SET estado_servicio = :estado";
+            
+            if ($nuevoEstado === 'EN_CAMINO' && $tiempoLlegada > 0) {
+                $sql .= ", tiempo_estimado_llegada_min = :tiempo";
+            } elseif ($nuevoEstado === 'FINALIZADA' && $precioAcordado > 0) {
+                $sql .= ", precio_acordado = :precio, fecha_finalizacion = CURRENT_TIMESTAMP";
+            } elseif ($nuevoEstado === 'EN_PROCESO') {
+                $sql .= ", fecha_inicio_atencion = CURRENT_TIMESTAMP";
+            }
+            
+            $sql .= " WHERE id_solicitud = :id_sol";
+            $stmt = $db->prepare($sql);
+            
+            $stmt->bindParam(':estado', $nuevoEstado);
+            $stmt->bindParam(':id_sol', $idSolicitud);
+            if ($nuevoEstado === 'EN_CAMINO' && $tiempoLlegada > 0) $stmt->bindParam(':tiempo', $tiempoLlegada);
+            if ($nuevoEstado === 'FINALIZADA' && $precioAcordado > 0) $stmt->bindParam(':precio', $precioAcordado);
+            
+            $stmt->execute();
+
+            if ($nuevoEstado === 'EN_CAMINO') {
+                // ÉXITO: Abre el mapa a pantalla completa
+                header("Location: " . BASE_URL . "/profesional/mapaViaje/" . $idSolicitud);
+                exit;
+            } else {
+                header("Location: " . BASE_URL . "/profesional/solicitudes?success=estado_actualizado");
+                exit;
             }
 
-            // Aquí a futuro: Si el estado es "ACEPTADA", descontar 1 Token de la tabla del profesional.
-
         } catch (Exception $e) {
-            // Sprint futuro: flash message con $e->getMessage()
+            // SI FALLA, MUESTRA EL ERROR EN VEZ DE NO HACER NADA
+            die("<h2 style='color:red;'>Error de Base de Datos al cambiar estado: " . $e->getMessage() . "</h2><br>¿Ejecutaste el código SQL en phpMyAdmin?");
+        }
+    }
+    /* ========================================================
+       8. REGISTRAR PAGO Y ENVIAR A VERIFICACIÓN
+       ======================================================== */
+    public function registrarPago() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . BASE_URL . "/profesional/comprarTokens");
+            exit;
         }
 
-        header("Location: " . BASE_URL . "/profesional/solicitudes");
+        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
+        if (!$perfil) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        // Recibimos los datos limpios del formulario
+        $idPlan = (int) $_POST['id_plan'];
+        $monto = (float) $_POST['monto'];
+        $metodoPago = $_POST['metodo_pago'];
+        $codigoComprobante = trim($_POST['codigo_comprobante']);
+        $tipoTransaccion = 'MEMBRESIA_MENSUAL'; // Como están comprando un Plan, es Membresía
+
+        try {
+            $db = Database::getInstance()->getConnection();
+            
+            // Insertamos el pago en estado PENDIENTE
+            $stmt = $db->prepare("
+                INSERT INTO transacciones_suscripcion 
+                (id_profesional, id_plan, tipo_transaccion, monto, metodo_pago, codigo_comprobante, estado_pago) 
+                VALUES (:id_profesional, :id_plan, :tipo, :monto, :metodo, :codigo, 'PENDIENTE')
+            ");
+            
+            $stmt->execute([
+                ':id_profesional' => $perfil['id_profesional'],
+                ':id_plan' => $idPlan,
+                ':tipo' => $tipoTransaccion,
+                ':monto' => $monto,
+                ':metodo' => $metodoPago,
+                ':codigo' => $codigoComprobante
+            ]);
+
+            $idTransaccion = $db->lastInsertId();
+
+            // Guardamos en la tabla de auditoría
+            require_once "../app/models/Usuario.php";
+            $usuarioModel = new Usuario();
+            $usuarioModel->auditar((int) $_SESSION['user_id'], 'REPORTE_PAGO_ENVIADO', 'transacciones_suscripcion', $idTransaccion);
+
+            // Redirigimos con éxito
+            header("Location: " . BASE_URL . "/profesional/comprarTokens?success=ok");
+            exit;
+
+        } catch (PDOException $e) {
+            // Si el código de comprobante ya fue usado, la BD lanzará un error porque es UNIQUE
+            header("Location: " . BASE_URL . "/profesional/comprarTokens?error=codigo_duplicado");
+            exit;
+        }
+    }
+
+/* ========================================================
+       9. ACTUALIZAR DATOS DEL PERFIL
+       ======================================================== */
+    public function actualizarPerfil() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . BASE_URL . "/profesional/perfil");
+            exit;
+        }
+
+        $idUsuario = (int) $_SESSION['user_id'];
+        $perfil = $this->profesionalModel->buscarPorUsuario($idUsuario);
+        
+        if (!$perfil) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        // Recibimos los datos y los limpiamos
+        $celular = trim($_POST['celular'] ?? '');
+        $macrodistrito = $_POST['macrodistrito_base'] ?? '';
+        $zona = trim($_POST['zona_especifica'] ?? '');
+        $tarifa = (float) ($_POST['tarifa_base'] ?? 0);
+        $descripcion = trim($_POST['descripcion_servicio'] ?? '');
+
+        try {
+            $db = Database::getInstance()->getConnection();
+            
+            // 1. Actualizamos el celular en la tabla 'usuarios'
+            $stmtU = $db->prepare("UPDATE usuarios SET celular = :celular WHERE id_usuario = :id_usuario");
+            $stmtU->execute([':celular' => $celular, ':id_usuario' => $idUsuario]);
+
+            // 2. Actualizamos la info operativa en la tabla 'profesionales'
+            $stmtP = $db->prepare("
+                UPDATE profesionales 
+                SET macrodistrito_base = :macro, zona_especifica = :zona, tarifa_base = :tarifa, descripcion_servicio = :desc 
+                WHERE id_profesional = :id_profesional
+            ");
+            $stmtP->execute([
+                ':macro' => $macrodistrito,
+                ':zona' => $zona,
+                ':tarifa' => $tarifa,
+                ':desc' => $descripcion,
+                ':id_profesional' => $perfil['id_profesional']
+            ]);
+
+            header("Location: " . BASE_URL . "/profesional/perfil?success=ok");
+        } catch (PDOException $e) {
+            // Error clásico: Intentó poner un celular que ya existe en otro usuario
+            header("Location: " . BASE_URL . "/profesional/perfil?error=celular_duplicado");
+        }
         exit;
+    }
+
+
+    /* ========================================================
+       10. MÓDULO: PEDIR UN SERVICIO (MODO CLIENTE CON IA)
+       ======================================================== */
+    public function pedirServicio() {
+        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
+        if (!$perfil) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        
+        // 1. Traemos las categorías
+        $categorias = $db->query("SELECT id_categoria, nombre_categoria, icono_fa FROM categorias WHERE estado = 1 ORDER BY nombre_categoria ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        // 2. Traemos a TODOS los profesionales (excepto él mismo) ORDENADOS POR PLAN Y ESTRELLAS
+        $stmtProf = $db->prepare("
+            SELECT p.id_profesional, p.id_categoria, u.nombre, u.apellido, 
+                   c.nombre_categoria, pl.nombre_plan, pl.posicionamiento_destacado,
+                   COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas
+            FROM profesionales p
+            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
+            INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
+            LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
+            WHERE p.estado_validacion = 'APROBADO' 
+              AND p.estado_disponibilidad = 'DISPONIBLE'
+              AND p.tokens_disponibles > 0
+              AND p.id_usuario != :id_usuario
+            ORDER BY pl.posicionamiento_destacado DESC, pl.id_plan DESC, promedio_estrellas DESC
+        ");
+        $stmtProf->execute([':id_usuario' => (int) $_SESSION['user_id']]);
+        $listaProfesionales = $stmtProf->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('profesional/pedir_servicio', [
+            'titulo'             => 'GEO-PRO | Solicitar Asistencia',
+            'perfil'             => $perfil,
+            'categorias'         => $categorias,
+            'listaProfesionales' => $listaProfesionales
+        ]);
+    }
+
+    public function registrarPedidoServicio() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . BASE_URL . "/profesional/pedirServicio");
+            exit;
+        }
+
+        $idUsuario = (int) $_SESSION['user_id'];
+        $perfil = $this->profesionalModel->buscarPorUsuario($idUsuario);
+
+        $idCategoria = (int) $_POST['id_categoria'];
+        $descripcion = trim($_POST['descripcion_problema']);
+        $direccion   = trim($_POST['direccion_servicio']);
+        $tipoAsignacion = $_POST['tipo_asignacion']; // 'AUTO' o 'MANUAL'
+        $idProfesionalManual = (int) ($_POST['id_profesional_seleccionado'] ?? 0);
+
+        try {
+            $db = Database::getInstance()->getConnection();
+
+            // 1. Insertamos al profesional como cliente si aún no existe
+            $stmtC = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id_usuario");
+            $stmtC->execute([':id_usuario' => $idUsuario]);
+            $idCliente = $stmtC->fetchColumn();
+
+            if (!$idCliente) {
+                $stmtIns = $db->prepare("INSERT INTO clientes (id_usuario, direccion_referencia, zona) VALUES (:id, :dir, :zona)");
+                $stmtIns->execute([':id' => $idUsuario, ':dir' => $direccion, ':zona' => $perfil['zona_especifica'] ?? 'La Paz']);
+                $idCliente = $db->lastInsertId();
+            }
+
+            // 2. LÓGICA DE ASIGNACIÓN (EL CORAZÓN DEL SISTEMA)
+            $idProfesionalAsignado = null;
+
+            if ($tipoAsignacion === 'MANUAL' && $idProfesionalManual > 0) {
+                $idProfesionalAsignado = $idProfesionalManual;
+            } else {
+                // ASIGNACIÓN AUTOMÁTICA POR LA I.A. (Respeta planes y tokens)
+                $stmtIA = $db->prepare("
+                    SELECT p.id_profesional 
+                    FROM profesionales p
+                    INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
+                    WHERE p.id_categoria = :id_categoria 
+                      AND p.id_usuario != :id_usuario_propio 
+                      AND p.estado_validacion = 'APROBADO' 
+                      AND p.estado_disponibilidad = 'DISPONIBLE'
+                      AND p.tokens_disponibles > 0 
+                    ORDER BY pl.posicionamiento_destacado DESC, pl.id_plan DESC, RAND() 
+                    LIMIT 1
+                ");
+                $stmtIA->execute([':id_categoria' => $idCategoria, ':id_usuario_propio' => $idUsuario]);
+                $idProfesionalAsignado = $stmtIA->fetchColumn();
+            }
+
+            if (!$idProfesionalAsignado) {
+                header("Location: " . BASE_URL . "/profesional/pedirServicio?error=sin_profesionales");
+                exit;
+            }
+
+            // 3. REGISTRAMOS LA SOLICITUD
+            $codigoSeguimiento = 'GEO-' . strtoupper(substr(md5(uniqid()), 0, 8));
+            $stmtSol = $db->prepare("
+                INSERT INTO solicitudes_servicio 
+                (codigo_seguimiento, id_cliente, id_profesional, descripcion_problema, direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino, estado_servicio) 
+                VALUES (:codigo, :idc, :idp, :desc, :dir, :macro, :zona, :lat, :lng, 'PENDIENTE')
+            ");
+            
+            $stmtSol->execute([
+                ':codigo' => $codigoSeguimiento,
+                ':idc' => $idCliente,
+                ':idp' => $idProfesionalAsignado,
+                ':desc' => $descripcion,
+                ':dir' => $direccion,
+                ':macro' => $perfil['macrodistrito_base'] ?? 'CENTRO',
+                ':zona' => $perfil['zona_especifica'] ?? 'La Paz',
+                ':lat' => $perfil['latitud_actual'] ?? -16.5000,
+                ':lng' => $perfil['longitud_actual'] ?? -68.1500
+            ]);
+
+            header("Location: " . BASE_URL . "/profesional/pedirServicio?success=ok");
+            exit;
+
+        } catch (Exception $e) {
+            header("Location: " . BASE_URL . "/profesional/pedirServicio?error=db");
+            exit;
+        }
+    }
+    /* ========================================================
+       11. MAPA DE VIAJE Y TRACKING GPS (Para el Profesional)
+       ======================================================== */
+    public function mapaViaje($idSolicitud) {
+        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
+        if (!$perfil) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        require_once "../app/models/Solicitud.php";
+        $solicitudModel = new Solicitud();
+        
+        // Obtenemos los detalles de esta solicitud específica
+        $solicitud = $solicitudModel->obtenerPorId((int) $idSolicitud);
+
+        // Seguridad: Verificar que esta solicitud le pertenece a este profesional
+        if (!$solicitud || (int)$solicitud['id_profesional'] !== (int)$perfil['id_profesional']) {
+            header("Location: " . BASE_URL . "/profesional/solicitudes");
+            exit;
+        }
+
+        $this->view('profesional/mapa_viaje', [
+            'titulo'    => 'GEO-PRO | Tracking de Viaje',
+            'perfil'    => $perfil,
+            'solicitud' => $solicitud
+        ]);
     }
 }

@@ -1,86 +1,111 @@
 <?php require_once "../app/views/layouts/header.php"; ?>
 
-<div class="container py-4" style="max-width: 600px; margin: auto;">
-    <div class="card shadow-lg" style="border-radius: 15px; border-top: 5px solid #00BFA6;">
-        <div class="card-header bg-white text-center pt-4 pb-2" style="border-radius: 15px 15px 0 0;">
-            <h4 class="text-dark fw-bold">
-                <i class="fa-solid <?= $solicitud['estado_servicio'] === 'EN_PROCESO' ? 'fa-screwdriver-wrench' : 'fa-motorcycle' ?> text-primary"></i> 
-                <?= $solicitud['estado_servicio'] === 'EN_PROCESO' ? 'Trabajando en el Domicilio' : 'Viaje en Curso' ?>
-            </h4>
-            <p class="text-muted small">
-                <?= $solicitud['estado_servicio'] === 'EN_PROCESO' ? 'Realizando el servicio técnico' : 'Dirígete a la ubicación del cliente' ?>
-            </p>
+<style>
+/* ============================================================
+   GEO-PRO TRACKING PROFESIONAL — PREMIUM UI
+   ============================================================ */
+:root {
+    --geo-dark: #071827; --geo-primary: #08b7a5; --geo-primary-dark: #079486;
+    --geo-bg: #f5f7fa; --geo-text: #172033; --geo-muted: #718096;
+    --geo-border: #e8edf2; --geo-blue: #2563eb;
+}
+
+body { background: var(--geo-bg) !important; color: var(--geo-text); font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+.geo-navbar { display: none !important; }
+
+/* Contenedor Flex para Pantalla Completa */
+.tracking-layout { display: flex; flex-direction: column; height: 100vh; width: 100%; position: relative; }
+
+/* Botón Flotante Volver */
+.btn-back-floating { position: absolute; top: 20px; left: 20px; z-index: 1000; background: white; border: none; width: 45px; height: 45px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; color: var(--geo-dark); font-size: 1.2rem; cursor: pointer; text-decoration: none; transition: transform 0.2s; }
+.btn-back-floating:hover { transform: scale(1.05); color: var(--geo-primary); }
+
+/* Mapa Ocupa el Espacio Sobrante */
+.map-section { flex: 1; position: relative; z-index: 1; width: 100%; }
+#mapaProfesional { width: 100%; height: 100%; }
+
+/* Tarjeta de Control Inferior (Action Sheet) */
+.action-sheet { background: #ffffff; border-radius: 30px 30px 0 0; padding: 30px 25px; box-shadow: 0 -10px 40px rgba(7, 24, 39, 0.1); position: relative; z-index: 1000; display: flex; flex-direction: column; gap: 20px; animation: slideUpSheet 0.5s ease; }
+@keyframes slideUpSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Indicador de Arrastre (Visual) */
+.drag-indicator { width: 50px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 0 auto 15px; }
+
+/* Cabecera del Estado */
+.status-header { display: flex; align-items: center; justify-content: space-between; }
+.status-title { font-weight: 900; font-size: 1.3rem; color: var(--geo-dark); margin: 0; }
+.status-subtitle { color: var(--geo-muted); font-size: 0.9rem; font-weight: 500; margin: 0; }
+.icon-box { width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+.icon-travel { background: #eff6ff; color: var(--geo-blue); }
+.icon-work { background: #ecfdf5; color: #10b981; }
+
+/* Estado del GPS */
+.gps-status { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 12px 18px; border-radius: 14px; border: 1px solid var(--geo-border); font-size: 0.9rem; font-weight: 700; }
+.gps-warning { color: #d97706; }
+.gps-success { color: #10b981; }
+.gps-error { color: #dc2626; }
+
+/* Botones de Acción */
+.btn-action-main { padding: 18px; border-radius: 18px; font-weight: 800; font-size: 1.1rem; border: none; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: transform 0.2s, box-shadow 0.2s; color: white; }
+.btn-arrive { background: linear-gradient(135deg, var(--geo-blue) 0%, #1d4ed8 100%); box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3); }
+.btn-finish { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); }
+.btn-action-main:hover { transform: translateY(-2px); }
+
+/* Diseño del Modal de Cobro */
+.modal-content-premium { border-radius: 24px; border: none; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+.modal-header-premium { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px; border: none; }
+.modal-body-premium { padding: 30px; }
+.input-money-wrapper { position: relative; margin-top: 10px; }
+.input-money-wrapper span { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--geo-dark); font-size: 1.2rem; }
+.input-money { width: 100%; padding: 20px 20px 20px 55px; border-radius: 16px; border: 2px solid var(--geo-border); font-size: 1.5rem; font-weight: 800; color: var(--geo-dark); background: #f8fafc; transition: all 0.3s; }
+.input-money:focus { outline: none; border-color: #10b981; background: #ffffff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); }
+</style>
+
+<div class="tracking-layout">
+
+    <!-- Botón Flotante para salir del mapa -->
+    <a href="javascript:history.back()" class="btn-back-floating" title="Volver al inicio">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+
+    <!-- SECCIÓN DEL MAPA (Pantalla Completa) -->
+    <div class="map-section">
+        <div id="mapaProfesional"></div>
+    </div>
+
+    <!-- TARJETA INFERIOR DE CONTROL (Action Sheet) -->
+    <div class="action-sheet">
+        <div class="drag-indicator"></div>
+
+        <div class="status-header">
+            <div>
+                <h3 class="status-title">Viaje en Curso</h3>
+                <p class="status-subtitle">Dirígete a la ubicación del cliente</p>
+            </div>
+            <div class="icon-box icon-travel">
+                <i class="fa-solid fa-motorcycle"></i>
+            </div>
+        </div>
+
+        <!-- Barra de estado del GPS -->
+        <div class="gps-status" id="gpsContainer">
+            <i id="gpsIcon" class="fa-solid fa-satellite-dish fa-fade gps-warning"></i>
+            <span id="gpsText" class="gps-warning">Buscando señal GPS...</span>
         </div>
         
-        <div class="card-body p-0">
-            <!-- Contenedor del Mapa del Profesional -->
-            <div id="mapaProfesional" style="height: 60vh; width: 100%;"></div>
-        </div>
-
-        <div class="card-footer bg-light p-3 text-center" style="border-radius: 0 0 15px 15px;">
-            
-            <!-- LÓGICA 1: TÉCNICO VIAJANDO -->
-            <?php if ($solicitud['estado_servicio'] === 'EN_CAMINO'): ?>
-                <p id="statusGps" class="text-warning fw-bold mb-3">
-                    <i class="fa-solid fa-satellite-dish fa-spin"></i> Conectando al GPS del dispositivo...
-                </p>
-                
-                <form action="<?= BASE_URL ?>/solicitud/actualizarEstado" method="POST">
-                    <input type="hidden" name="id_solicitud" value="<?= $solicitud['id_solicitud'] ?>">
-                    <button type="submit" name="estado" value="EN_PROCESO" class="btn btn-primary w-100 fw-bold py-3" style="border-radius: 10px; font-size: 1.1rem;">
-                        <i class="fa-solid fa-location-dot"></i> ¡Llegué al Domicilio!
-                    </button>
-                </form>
-
-            <!-- LÓGICA 2: TÉCNICO YA LLEGÓ Y ESTÁ TRABAJANDO -->
-            <?php elseif ($solicitud['estado_servicio'] === 'EN_PROCESO'): ?>
-                <p class="text-success fw-bold mb-3">
-                    <i class="fa-solid fa-circle-check"></i> El cliente fue notificado de tu llegada.
-                </p>
-                
-                <!-- Botón que abre el Modal para Finalizar -->
-                <button type="button" class="btn btn-success w-100 fw-bold py-3" style="border-radius: 10px; font-size: 1.1rem;" data-bs-toggle="modal" data-bs-target="#modalFinalizar">
-                    <i class="fa-solid fa-flag-checkered"></i> Finalizar Trabajo y Cobrar
-                </button>
-
-                <!-- MODAL: Ingresar el Precio Final Acordado -->
-                <div class="modal fade" id="modalFinalizar" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content" style="border-radius: 15px;">
-                            <div class="modal-header bg-success text-white" style="border-radius: 15px 15px 0 0;">
-                                <h5 class="modal-title fw-bold"><i class="fa-solid fa-check-double"></i> Concluir Servicio</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <form action="<?= BASE_URL ?>/solicitud/actualizarEstado" method="POST">
-                                <div class="modal-body text-start p-4">
-                                    <p class="text-center mb-4">Ingresa el precio final que el cliente te pagó. Esto es vital para el registro y la transparencia de GEO-PRO.</p>
-                                    
-                                    <label class="form-label fw-bold text-dark small"><i class="fa-solid fa-money-bill-wave text-success"></i> Precio Final Cobrado (Bs.)</label>
-                                    <div class="input-group mb-3">
-                                        <span class="input-group-text bg-light fw-bold">Bs.</span>
-                                        <input type="number" step="0.50" name="precio_acordado" class="form-control" placeholder="Ej: 150.00" required min="5">
-                                    </div>
-                                </div>
-                                <div class="modal-footer justify-content-center">
-                                    <input type="hidden" name="id_solicitud" value="<?= $solicitud['id_solicitud'] ?>">
-                                    <button type="submit" name="estado" value="FINALIZADA" class="btn btn-success fw-bold w-100 py-2" style="border-radius: 10px;">Guardar y Finalizar Servicio</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-        </div>
+        <!-- BOTÓN LLEGUÉ: Actualiza estado y cierra el mapa -->
+        <form action="<?= BASE_URL ?>/solicitud/actualizarEstado" method="POST">
+            <input type="hidden" name="id_solicitud" value="<?= $solicitud['id_solicitud'] ?>">
+            <button type="submit" name="estado" value="EN_PROCESO" class="btn-action-main btn-arrive">
+                <i class="fa-solid fa-location-dot"></i> ¡Llegué al Domicilio!
+            </button>
+        </form>
     </div>
 </div>
 
-<!-- Leaflet Core -->
+<!-- LIBRERÍAS DE MAPA -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-
-
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
@@ -89,24 +114,25 @@ document.addEventListener("DOMContentLoaded", function() {
     const lngDestino = <?= (float) $solicitud['longitud_destino'] ?>;
     const estadoServicio = "<?= $solicitud['estado_servicio'] ?>";
 
-    // 1. Inicializar Mapa centrado en el destino
-    const mapa = L.map('mapaProfesional').setView([latDestino, lngDestino], 15);
+    // 1. Inicializar Mapa
+    // Ocultamos controles por defecto para que se vea como app nativa
+    const mapa = L.map('mapaProfesional', { zoomControl: false }).setView([latDestino, lngDestino], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
     }).addTo(mapa);
 
-    // 2. Marcador del Cliente (Destino)
+    // 2. Marcador del Cliente
     const iconoDestino = L.divIcon({ 
-        html: '<i class="fa-solid fa-house-user fa-2x text-danger"></i>', 
-        className: '', iconSize: [30,30] 
+        html: `<div style="width:45px; height:45px; border-radius:50%; background:#dc2626; color:white; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow: 0 6px 15px rgba(220,38,38,0.4);"><i class="fa-solid fa-house-user fs-5"></i></div>`, 
+        className: 'bg-transparent', iconSize: [45,45], iconAnchor: [22,22]
     });
-    L.marker([latDestino, lngDestino], { icon: iconoDestino }).addTo(mapa).bindPopup('<b>Domicilio del Cliente</b>');
+    L.marker([latDestino, lngDestino], { icon: iconoDestino }).addTo(mapa).bindPopup('<b class="text-dark">Destino del Cliente</b>');
 
     let marcadorMiUbicacion = null;
 
-    // 3. Función para enviar la ubicación al servidor (Solo si está EN_CAMINO)
+    // 3. Enviar ubicación
     async function enviarUbicacionAlServidor(lat, lng, velocidad) {
-        if (estadoServicio !== 'EN_CAMINO') return; // Si ya llegó, no gasta internet enviando GPS
+        if (estadoServicio !== 'EN_CAMINO') return;
 
         const formData = new FormData();
         formData.append('id_solicitud', idSolicitud);
@@ -119,17 +145,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 method: 'POST',
                 body: formData
             });
-            const statusGps = document.getElementById('statusGps');
-            if (statusGps) {
-                statusGps.innerHTML = '<i class="fa-solid fa-satellite-dish text-success"></i> Transmitiendo ubicación en vivo...';
-                statusGps.className = 'text-success fw-bold mb-3';
+            
+            // Actualización Visual Exitosa
+            const gpsIcon = document.getElementById('gpsIcon');
+            const gpsText = document.getElementById('gpsText');
+            if (gpsIcon && gpsText) {
+                gpsIcon.className = 'fa-solid fa-satellite-dish gps-success';
+                gpsText.className = 'gps-success';
+                gpsText.innerText = 'Transmitiendo ubicación en vivo...';
             }
         } catch (error) {
             console.error("Error enviando GPS");
         }
     }
 
-    // 4. Leer el GPS del celular del Profesional
+    // 4. Leer GPS del navegador
     if ("geolocation" in navigator) {
         const opcionesGps = { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 };
 
@@ -141,11 +171,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 if (!marcadorMiUbicacion) {
                     const iconoMiUbicacion = L.divIcon({ 
-                        html: '<i class="fa-solid fa-motorcycle fa-2x text-primary"></i>', 
-                        className: '', iconSize: [30,30] 
+                        html: `<div style="width:45px; height:45px; border-radius:50%; background:#2563eb; color:white; display:flex; align-items:center; justify-content:center; border:3px solid white; box-shadow: 0 6px 15px rgba(37,99,235,0.4);"><i class="fa-solid fa-motorcycle fs-5"></i></div>`, 
+                        className: 'bg-transparent', iconSize: [45,45], iconAnchor: [22,22]
                     });
-                    marcadorMiUbicacion = L.marker([lat, lng], { icon: iconoMiUbicacion }).addTo(mapa).bindPopup('<b>Mi Ubicación</b>');
-                    mapa.fitBounds([[latDestino, lngDestino], [lat, lng]], { padding: [50, 50] });
+                    marcadorMiUbicacion = L.marker([lat, lng], { icon: iconoMiUbicacion }).addTo(mapa).bindPopup('<b>Tú</b>');
+                    
+                    // Ajustar mapa para que se vean ambos puntos
+                    mapa.fitBounds([[latDestino, lngDestino], [lat, lng]], { padding: [60, 60] });
                 } else {
                     marcadorMiUbicacion.setLatLng([lat, lng]);
                 }
@@ -153,10 +185,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 enviarUbicacionAlServidor(lat, lng, velocidad);
             },
             (error) => {
-                const statusGps = document.getElementById('statusGps');
-                if (statusGps) {
-                    statusGps.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-danger"></i> Por favor, activa el GPS.';
-                    statusGps.className = 'text-danger fw-bold mb-3';
+                const gpsIcon = document.getElementById('gpsIcon');
+                const gpsText = document.getElementById('gpsText');
+                if (gpsIcon && gpsText) {
+                    gpsIcon.className = 'fa-solid fa-triangle-exclamation gps-error';
+                    gpsText.className = 'gps-error';
+                    gpsText.innerText = 'Por favor, activa tu GPS para continuar.';
                 }
             },
             opcionesGps
