@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3307
--- Tiempo de generación: 05-09-2026 a las 00:19:11
+-- Tiempo de generación: 12-09-2026 a las 01:23:18
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -227,7 +227,104 @@ INSERT INTO `auditoria_logs` (`id_log`, `id_usuario`, `accion`, `tabla_afectada`
 (180, 3, 'LOGOUT', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:17:10'),
 (181, 3, 'LOGIN_SUCCESS', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 21:54:42'),
 (182, 3, 'LOGOUT', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 22:03:45'),
-(183, 1, 'LOGIN_SUCCESS', 'usuarios', 1, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 22:03:51');
+(183, 1, 'LOGIN_SUCCESS', 'usuarios', 1, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-04 22:03:51'),
+(184, 3, 'LOGIN_SUCCESS', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-07 17:46:38'),
+(185, 3, 'REVISION_DOCUMENTO_APROBADO', 'documentos_profesional', 6, NULL, '{\"id_profesional\":2}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 01:31:45'),
+(186, 3, 'LOGOUT', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 02:47:40'),
+(187, 4, 'LOGIN_SUCCESS', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 02:47:50'),
+(188, 4, 'LOGOUT', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 02:48:17'),
+(189, 4, 'LOGIN_SUCCESS', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 02:48:35'),
+(190, 4, 'LOGOUT', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 03:16:39'),
+(191, NULL, 'LOGIN_FAILED', 'usuarios', NULL, NULL, '{\"correo_intentado\":\"admin@geopro.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 03:16:45'),
+(192, 3, 'LOGIN_SUCCESS', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 03:21:58'),
+(193, 3, 'CAMBIO_ESTADO_USUARIO_BLOQUEADO', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 03:43:36'),
+(194, 3, 'CAMBIO_ESTADO_USUARIO_ACTIVO', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-08 03:43:38'),
+(195, 3, 'LOGIN_SUCCESS', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 05:34:26'),
+(196, 3, 'LOGOUT', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 05:36:09'),
+(197, 4, 'LOGIN_SUCCESS', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 05:36:18'),
+(198, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 18, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-AF6A80F9\"}', '127.0.0.1', NULL, '2026-09-11 08:30:01'),
+(199, 4, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 08:30:01'),
+(200, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 6, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-5231017D\"}', '127.0.0.1', NULL, '2026-09-11 08:30:43'),
+(201, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 08:30:43'),
+(202, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 5, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-16AD1BB5\"}', '127.0.0.1', NULL, '2026-09-11 08:30:53'),
+(203, 4, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 5, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 08:30:53'),
+(204, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 6, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-5231017D\"}', '127.0.0.1', NULL, '2026-09-11 08:31:01'),
+(205, 4, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 08:31:01'),
+(206, 4, 'LOGOUT', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:09:06'),
+(207, 6, 'LOGIN_SUCCESS', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:09:20'),
+(208, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 19, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-48714325\"}', '127.0.0.1', NULL, '2026-09-11 09:09:35'),
+(209, 6, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 19, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:09:35'),
+(210, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 19, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-48714325\"}', '127.0.0.1', NULL, '2026-09-11 09:09:51'),
+(211, 6, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 19, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:09:51'),
+(212, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 19, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-48714325\"}', '127.0.0.1', NULL, '2026-09-11 09:10:34'),
+(213, 6, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 19, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:10:34'),
+(214, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 19, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-48714325\"}', '127.0.0.1', NULL, '2026-09-11 09:10:46'),
+(215, 6, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 19, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:10:46'),
+(216, 6, 'LOGOUT', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:11:00'),
+(217, 4, 'LOGIN_SUCCESS', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:11:09'),
+(218, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 15, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-0DE35214\"}', '127.0.0.1', NULL, '2026-09-11 09:15:31'),
+(219, 4, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 15, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:15:31'),
+(220, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 15, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-0DE35214\"}', '127.0.0.1', NULL, '2026-09-11 09:15:38'),
+(221, 4, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 15, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:15:38'),
+(222, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-AF6A80F9\"}', '127.0.0.1', NULL, '2026-09-11 09:20:03'),
+(223, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:20:03'),
+(224, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 17, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-F53DFC39\"}', '127.0.0.1', NULL, '2026-09-11 09:21:56'),
+(225, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 17, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:21:56'),
+(226, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 12, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-27E7DA0B\"}', '127.0.0.1', NULL, '2026-09-11 09:23:30'),
+(227, 4, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 12, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:23:30'),
+(228, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:29'),
+(229, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:38'),
+(230, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:44'),
+(231, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 17, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:47'),
+(232, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:49'),
+(233, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 17, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:30:54'),
+(234, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:33:04'),
+(235, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 15, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-0DE35214\"}', '127.0.0.1', NULL, '2026-09-11 09:33:19'),
+(236, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 15, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 09:33:19'),
+(237, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 16:32:04');
+INSERT INTO `auditoria_logs` (`id_log`, `id_usuario`, `accion`, `tabla_afectada`, `registro_id`, `valores_anteriores`, `valores_nuevos`, `ip_origen`, `user_agent`, `fecha_evento`) VALUES
+(238, 1, 'LOGIN_SUCCESS', 'usuarios', 1, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-11 16:33:32'),
+(239, 6, 'LOGIN_SUCCESS', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 17:10:22'),
+(240, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 23, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-9F067800\"}', '127.0.0.1', NULL, '2026-09-11 17:10:53'),
+(241, 6, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 23, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 17:10:53'),
+(242, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 17:29:53'),
+(243, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 23, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-9F067800\"}', '127.0.0.1', NULL, '2026-09-11 17:40:35'),
+(244, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 23, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-9F067800\"}', '127.0.0.1', NULL, '2026-09-11 17:41:59'),
+(245, 6, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 23, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 17:41:59'),
+(246, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 12, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-27E7DA0B\"}', '127.0.0.1', NULL, '2026-09-11 17:42:36'),
+(247, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 12, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-27E7DA0B\"}', '127.0.0.1', NULL, '2026-09-11 17:42:38'),
+(248, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 12, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 17:42:38'),
+(249, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 17:42:52'),
+(250, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 18, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 17:43:28'),
+(251, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 24, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-B4FA33D5\"}', '127.0.0.1', NULL, '2026-09-11 17:44:39'),
+(252, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 24, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-B4FA33D5\"}', '127.0.0.1', NULL, '2026-09-11 17:44:51'),
+(253, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 24, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-B4FA33D5\"}', '127.0.0.1', NULL, '2026-09-11 17:45:10'),
+(254, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 24, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 17:45:10'),
+(255, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 24, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-B4FA33D5\"}', '127.0.0.1', NULL, '2026-09-11 17:57:07'),
+(256, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 18, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-AF6A80F9\"}', '127.0.0.1', NULL, '2026-09-11 17:57:16'),
+(257, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 12, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-27E7DA0B\"}', '127.0.0.1', NULL, '2026-09-11 17:57:26'),
+(258, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 23, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-9F067800\"}', '127.0.0.1', NULL, '2026-09-11 18:05:14'),
+(259, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 25, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-B644242B\"}', '127.0.0.1', NULL, '2026-09-11 20:25:39'),
+(260, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 25, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-B644242B\"}', '127.0.0.1', NULL, '2026-09-11 20:25:53'),
+(261, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 25, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-B644242B\"}', '127.0.0.1', NULL, '2026-09-11 20:26:33'),
+(262, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 25, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 20:26:33'),
+(263, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 25, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-B644242B\"}', '127.0.0.1', NULL, '2026-09-11 20:26:42'),
+(264, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 26, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-C608EC2F\"}', '127.0.0.1', NULL, '2026-09-11 20:45:00'),
+(265, NULL, 'CAMBIO_ESTADO_EN_CAMINO', 'solicitudes_servicio', 26, '{\"estado_anterior\": \"ACEPTADA\"}', '{\"estado_nuevo\": \"EN_CAMINO\", \"codigo\": \"GEO-C608EC2F\"}', '127.0.0.1', NULL, '2026-09-11 20:45:10'),
+(266, NULL, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 26, '{\"estado_anterior\": \"EN_CAMINO\"}', '{\"estado_nuevo\": \"EN_PROCESO\", \"codigo\": \"GEO-C608EC2F\"}', '127.0.0.1', NULL, '2026-09-11 20:45:12'),
+(267, 4, 'CAMBIO_ESTADO_EN_PROCESO', 'solicitudes_servicio', 26, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 20:45:12'),
+(268, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 26, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-C608EC2F\"}', '127.0.0.1', NULL, '2026-09-11 20:45:17'),
+(269, NULL, 'CAMBIO_ESTADO_FINALIZADA', 'solicitudes_servicio', 17, '{\"estado_anterior\": \"EN_PROCESO\"}', '{\"estado_nuevo\": \"FINALIZADA\", \"codigo\": \"GEO-F53DFC39\"}', '127.0.0.1', NULL, '2026-09-11 20:45:30'),
+(270, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 22, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-7C7ECAD1\"}', '127.0.0.1', NULL, '2026-09-11 21:06:06'),
+(271, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 21, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-7DB8A038\"}', '127.0.0.1', NULL, '2026-09-11 21:06:10'),
+(272, 6, 'REPORTE_PAGO_ENVIADO', 'transacciones_suscripcion', 2, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 22:00:38'),
+(273, 4, 'LOGOUT', 'usuarios', 4, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 22:02:00'),
+(274, 3, 'LOGIN_SUCCESS', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 22:02:08'),
+(275, 3, 'CONFIRMAR_PAGO', 'transacciones_suscripcion', 2, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 22:05:24'),
+(276, 6, 'LOGOUT', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 22:05:37'),
+(277, 6, 'LOGIN_SUCCESS', 'usuarios', 6, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0', '2026-09-11 22:05:46'),
+(278, NULL, 'CAMBIO_ESTADO_ACEPTADA', 'solicitudes_servicio', 20, '{\"estado_anterior\": \"PENDIENTE\"}', '{\"estado_nuevo\": \"ACEPTADA\", \"codigo\": \"GEO-AC4D56D8\"}', '127.0.0.1', NULL, '2026-09-11 22:07:27'),
+(279, 3, 'LOGOUT', 'usuarios', 3, NULL, '[]', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', '2026-09-11 23:17:26');
 
 -- --------------------------------------------------------
 
@@ -251,7 +348,8 @@ CREATE TABLE `calificaciones` (
 
 INSERT INTO `calificaciones` (`id_calificacion`, `id_solicitud`, `puntuacion_general`, `puntualidad`, `calidad_trabajo`, `comentario`, `fecha_calificacion`) VALUES
 (1, 3, 2, 5, 4, NULL, '2026-09-01 04:30:04'),
-(2, 16, 2, 3, 5, NULL, '2026-09-04 00:40:51');
+(2, 16, 2, 3, 5, NULL, '2026-09-04 00:40:51'),
+(110, 26, 5, 5, 5, NULL, '2026-09-11 21:07:28');
 
 -- --------------------------------------------------------
 
@@ -301,9 +399,30 @@ CREATE TABLE `clientes` (
 --
 
 INSERT INTO `clientes` (`id_cliente`, `id_usuario`, `direccion_referencia`, `zona`, `latitud_predeterminada`, `longitud_predeterminada`) VALUES
-(1, 1, 'Rios seco/av.santa fe', 'El Alto', -16.50000000, -68.15000000),
+(1, 1, 'Rios seco/av.santa fe', 'El Alto', -16.50727100, -68.21322100),
 (3, 4, 'rio seco', 'EL_ALTO', -16.50000000, -68.15000000),
 (4, 6, 'rio seco', 'EL_ALTO', -16.50000000, -68.15000000);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `clientes_favoritos`
+--
+
+CREATE TABLE `clientes_favoritos` (
+  `id_favorito` int(11) NOT NULL,
+  `id_cliente` int(11) NOT NULL,
+  `id_profesional` int(11) NOT NULL,
+  `fecha_agregado` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `clientes_favoritos`
+--
+
+INSERT INTO `clientes_favoritos` (`id_favorito`, `id_cliente`, `id_profesional`, `fecha_agregado`) VALUES
+(1, 1, 2, '2026-09-11 18:05:24'),
+(4, 1, 1, '2026-09-11 21:11:37');
 
 -- --------------------------------------------------------
 
@@ -333,7 +452,7 @@ INSERT INTO `documentos_profesional` (`id_documento`, `id_profesional`, `tipo_do
 (3, 1, 'CI_REVERSO', 'uploads/documentos/DOC_1_379ea809bf20d760.png', 'APROBADO', NULL, 3, '2026-08-30 19:45:43', '2026-09-02 06:05:36'),
 (4, 2, 'CI_ANVERSO', 'uploads/documentos/DOC_2_4ad304578d171c21.png', 'APROBADO', NULL, 3, '2026-08-30 20:12:28', '2026-08-30 20:12:45'),
 (5, 2, 'CI_REVERSO', 'uploads/documentos/DOC_2_91a1e66d78390142.png', 'APROBADO', NULL, 3, '2026-08-30 20:12:28', '2026-08-30 20:12:47'),
-(6, 2, 'CERTIFICADO_ANTECEDENTES', 'uploads/documentos/DOC_2_fae50078778255a4.png', 'APROBADO', NULL, 3, '2026-08-30 20:12:28', '2026-08-30 20:12:49');
+(6, 2, 'CERTIFICADO_ANTECEDENTES', 'uploads/documentos/DOC_2_fae50078778255a4.png', 'APROBADO', NULL, 3, '2026-08-30 20:12:28', '2026-09-08 01:31:45');
 
 -- --------------------------------------------------------
 
@@ -377,7 +496,12 @@ INSERT INTO `mensajes` (`id_mensaje`, `id_solicitud`, `id_remitente`, `tipo_mens
 (18, 16, 1, 'TEXTO', 'hola', NULL, 0, '2026-09-04 00:35:29'),
 (19, 16, 4, 'TEXTO', 'que problema tienes', NULL, 0, '2026-09-04 00:35:38'),
 (20, 16, 1, 'IMAGEN', NULL, 'uploads/chat/CHAT_16_b310542df5080e50.jpg', 0, '2026-09-04 00:35:47'),
-(21, 16, 1, 'TEXTO', 'este es mi problema', NULL, 0, '2026-09-04 00:35:52');
+(21, 16, 1, 'TEXTO', 'este es mi problema', NULL, 0, '2026-09-04 00:35:52'),
+(22, 18, 4, 'TEXTO', 'hollaaaaaaaaaaa', NULL, 0, '2026-09-11 08:29:43'),
+(23, 19, 4, 'TEXTO', 'hollaaaaaaaaaaa', NULL, 0, '2026-09-11 08:55:08'),
+(24, 19, 4, 'IMAGEN', NULL, 'uploads/chat/CHAT_19_1deb1a1599e39a70.png', 0, '2026-09-11 08:59:03'),
+(25, 19, 6, 'TEXTO', 'ho,a', NULL, 0, '2026-09-11 09:09:46'),
+(26, 23, 1, 'TEXTO', 'hola jefe', NULL, 0, '2026-09-11 17:11:06');
 
 -- --------------------------------------------------------
 
@@ -404,8 +528,21 @@ INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `tipo`, `mensaje`
 (2, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 1, '2026-09-02 19:05:26'),
 (3, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 1, '2026-09-02 19:52:46'),
 (4, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 1, '2026-09-04 00:34:59'),
-(5, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 0, '2026-09-04 00:55:14'),
-(6, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 0, '2026-09-04 01:00:50');
+(5, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 1, '2026-09-04 00:55:14'),
+(6, 4, 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', 'http://localhost:8080/GEO_PRO_V2/public/profesional/solicitudes', 1, '2026-09-04 01:00:50'),
+(7, 1, 'CAMBIO_ESTADO', '¡Prepárate! El profesional está en camino a tu domicilio.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/18', 0, '2026-09-11 08:30:01'),
+(8, 4, 'CAMBIO_ESTADO', 'El profesional ha iniciado la asistencia técnica.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/6', 1, '2026-09-11 08:30:43'),
+(9, 4, 'CAMBIO_ESTADO', 'Tu servicio ha concluido. ¡Por favor califica al profesional!', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/5', 1, '2026-09-11 08:30:53'),
+(10, 4, 'CAMBIO_ESTADO', 'Tu servicio ha concluido. ¡Por favor califica al profesional!', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/6', 1, '2026-09-11 08:31:01'),
+(11, 4, 'CAMBIO_ESTADO', 'Tu solicitud fue aceptada por el profesional. Revisa los detalles.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/19', 0, '2026-09-11 09:09:35'),
+(12, 4, 'CAMBIO_ESTADO', '¡Prepárate! El profesional está en camino a tu domicilio.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/19', 0, '2026-09-11 09:09:51'),
+(13, 4, 'CAMBIO_ESTADO', 'El profesional ha iniciado la asistencia técnica.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/19', 0, '2026-09-11 09:10:34'),
+(14, 4, 'CAMBIO_ESTADO', 'Tu servicio ha concluido. ¡Por favor califica al profesional!', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/19', 0, '2026-09-11 09:10:46'),
+(15, 1, 'CAMBIO_ESTADO', 'Tu solicitud fue aceptada por el profesional. Revisa los detalles.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/15', 0, '2026-09-11 09:15:31'),
+(16, 1, 'CAMBIO_ESTADO', '¡Prepárate! El profesional está en camino a tu domicilio.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/15', 0, '2026-09-11 09:15:38'),
+(17, 1, 'CAMBIO_ESTADO', 'El profesional ha iniciado la asistencia técnica.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/18', 0, '2026-09-11 09:20:03'),
+(18, 1, 'CAMBIO_ESTADO', 'Tu solicitud fue aceptada por el profesional. Revisa los detalles.', 'http://localhost:8080/GEO_PRO_V2/public/solicitud/detalle/12', 0, '2026-09-11 09:23:30'),
+(19, 6, 'PAGO_CONFIRMADO', 'Tu pago fue confirmado. ¡Membresía activada!', 'http://localhost:8080/GEO_PRO_V2/public/profesional/dashboard', 0, '2026-09-11 22:05:24');
 
 -- --------------------------------------------------------
 
@@ -416,8 +553,8 @@ INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `tipo`, `mensaje`
 CREATE TABLE `planes_suscripcion` (
   `id_plan` int(11) NOT NULL,
   `nombre_plan` varchar(50) NOT NULL,
-  `precio_mensual` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `tokens_mensuales` int(11) NOT NULL DEFAULT 5,
+  `precio` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `tokens_otorgados` int(11) NOT NULL DEFAULT 0,
   `posicionamiento_destacado` tinyint(1) NOT NULL DEFAULT 0,
   `descripcion` text DEFAULT NULL,
   `estado` tinyint(1) NOT NULL DEFAULT 1
@@ -427,7 +564,7 @@ CREATE TABLE `planes_suscripcion` (
 -- Volcado de datos para la tabla `planes_suscripcion`
 --
 
-INSERT INTO `planes_suscripcion` (`id_plan`, `nombre_plan`, `precio_mensual`, `tokens_mensuales`, `posicionamiento_destacado`, `descripcion`, `estado`) VALUES
+INSERT INTO `planes_suscripcion` (`id_plan`, `nombre_plan`, `precio`, `tokens_otorgados`, `posicionamiento_destacado`, `descripcion`, `estado`) VALUES
 (1, 'GRATUITO_TOKENS', 0.00, 5, 0, 'Asignación mensual de 5 tokens gratuitos. Pago por recarga si se agotan.', 1),
 (2, 'BASICO_MENSUAL', 29.00, 40, 0, '40 tokens mensuales, insignia de verificación y posicionamiento estándar en La Paz.', 1),
 (3, 'PREMIUM_DESTACADO', 69.00, 999, 1, 'Propuestas ilimitadas, prioridad de radio geográfico e insignia destacada.', 1);
@@ -466,8 +603,8 @@ CREATE TABLE `profesionales` (
 --
 
 INSERT INTO `profesionales` (`id_profesional`, `id_usuario`, `id_categoria`, `id_plan`, `tipo_prestador`, `tipo_documento_identidad`, `numero_documento`, `experiencia_anios`, `descripcion_servicio`, `macrodistrito_base`, `zona_especifica`, `tokens_disponibles`, `fin_suscripcion`, `tarifa_base`, `estado_validacion`, `estado_disponibilidad`, `latitud_actual`, `longitud_actual`, `ultima_conexion`, `fecha_registro`) VALUES
-(1, 4, 1, 1, 'TECNICO_PROFESIONAL', 'CI', '12576550', 0, 'estos son mis certificados que tengo en la intitucion del =x', 'EL_ALTO', 'rio seco', 10, NULL, 0.00, 'APROBADO', 'DISPONIBLE', -16.50962653, -68.15261558, '2026-09-04 01:00:58', '2026-08-30 19:45:43'),
-(2, 6, 5, 1, 'OFICIO_EMPIRICO', 'CI', '1257655', 4, 'tengo experiencia en obra bruta en pisos casas', 'EL_ALTO', 'rio seco', 5, NULL, 0.00, 'APROBADO', 'DISPONIBLE', -16.50000000, -68.15000000, '2026-09-04 00:30:14', '2026-08-30 20:12:28');
+(1, 4, 1, 1, 'TECNICO_PROFESIONAL', 'CI', '12576550', 0, 'estos son mis certificados que tengo en la intitucion del =x', 'EL_ALTO', 'rio seco', 8, NULL, 0.00, 'APROBADO', 'DISPONIBLE', -16.50634343, -68.21578064, '2026-09-11 20:25:53', '2026-08-30 19:45:43'),
+(2, 6, 5, 2, 'OFICIO_EMPIRICO', 'CI', '1257655', 4, 'tengo experiencia en obra bruta en pisos casas', 'EL_ALTO', 'rio seco', 0, '2026-10-11', 0.00, 'APROBADO', 'DISPONIBLE', -16.50634343, -68.21578064, '2026-09-11 22:05:24', '2026-08-30 20:12:28');
 
 -- --------------------------------------------------------
 
@@ -528,20 +665,29 @@ INSERT INTO `solicitudes_servicio` (`id_solicitud`, `codigo_seguimiento`, `id_cl
 (2, 'GEO-BEBE76A8', 1, 1, 'se quemo mi foco', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50000000, -68.15000000, 'FINALIZADA', NULL, NULL, NULL, '2026-08-31 13:28:05', '2026-09-01 03:58:32', '2026-09-01 03:58:37'),
 (3, 'GEO-F2F8479D', 3, 1, 'asdasdasdasdasd', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'FINALIZADA', NULL, NULL, NULL, '2026-09-01 03:58:55', '2026-09-01 04:29:46', '2026-09-01 04:29:49'),
 (4, 'GEO-588143F0', 3, 1, 'asddddddddddddddddddddddddddddd', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'FINALIZADA', NULL, NULL, NULL, '2026-09-01 04:52:03', '2026-09-02 05:27:13', '2026-09-02 05:27:16'),
-(5, 'GEO-16AD1BB5', 3, 1, 'dgdfgdfgdfgdfgdfgdfgdfg', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'EN_PROCESO', NULL, NULL, NULL, '2026-09-02 06:04:42', '2026-09-02 19:42:45', NULL),
-(6, 'GEO-5231017D', 3, 1, 'pruebaaaaaaaaaaa', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'EN_CAMINO', NULL, NULL, NULL, '2026-09-02 06:05:04', NULL, NULL),
+(5, 'GEO-16AD1BB5', 3, 1, 'dgdfgdfgdfgdfgdfgdfgdfg', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'FINALIZADA', NULL, NULL, NULL, '2026-09-02 06:04:42', '2026-09-02 19:42:45', '2026-09-11 08:30:53'),
+(6, 'GEO-5231017D', 3, 1, 'pruebaaaaaaaaaaa', 'rio seco', 'EL_ALTO', 'EL_ALTO', -16.50000000, -68.15000000, 'FINALIZADA', NULL, NULL, NULL, '2026-09-02 06:05:04', '2026-09-11 08:30:43', '2026-09-11 08:31:01'),
 (7, 'GEO-3B74D131', 1, 1, 'ayudaaaa!!!!!!!!!!!!!!!!!!', 'Rios seco/av.santa fe', 'EL_ALTO', 'rio seco av. costanera', -16.50000000, -68.15000000, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:00:29', NULL, NULL),
 (8, 'GEO-349BE65A', 1, 1, 'asdadadasdadasdad', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50000000, -68.15000000, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:00:47', NULL, NULL),
 (9, 'GEO-3BB70B0F', 1, 1, 'asdadadasdadasdad', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50000000, -68.15000000, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:03:02', NULL, NULL),
 (10, 'GEO-52E70E45', 1, 1, 'asdadadasdadasdad', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50000000, -68.15000000, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:03:17', NULL, NULL),
 (11, 'GEO-9116E21F', 1, 1, 'ayudaaaaaaa', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.49888768, -68.21033478, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:04:11', NULL, NULL),
-(12, 'GEO-27E7DA0B', 1, 1, 'ayudaaaaaaaaaaaaa', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50699373, -68.20625782, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 18:10:13', NULL, NULL),
+(12, 'GEO-27E7DA0B', 1, 1, 'ayudaaaaaaaaaaaaa', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50699373, -68.20625782, 'FINALIZADA', NULL, 5, NULL, '2026-09-02 18:10:13', '2026-09-11 17:42:38', NULL),
 (13, 'GEO-7AA61692', 1, 1, 'ayudaaaaaaaaaaaaa', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50699373, -68.20625782, 'FINALIZADA', 20.00, NULL, NULL, '2026-09-02 18:13:10', '2026-09-02 19:28:21', '2026-09-02 19:55:53'),
 (14, 'GEO-747F967C', 1, 1, 'tengno otro problema de mi luz', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50575933, -68.21057081, 'FINALIZADA', 99999999.99, 30, NULL, '2026-09-02 19:05:26', '2026-09-02 19:42:49', '2026-09-02 20:17:42'),
-(15, 'GEO-0DE35214', 1, 1, 'se quemo mi foco', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50753378, -68.21277559, 'PENDIENTE', NULL, NULL, NULL, '2026-09-02 19:52:45', NULL, NULL),
+(15, 'GEO-0DE35214', 1, 1, 'se quemo mi foco', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50753378, -68.21277559, 'EN_PROCESO', NULL, NULL, NULL, '2026-09-02 19:52:45', '2026-09-11 09:33:19', NULL),
 (16, 'GEO-ECA534E2', 1, 1, 'asdddddddddddddasdasdasd', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50971662, -68.15245326, 'FINALIZADA', 15.00, 20, NULL, '2026-09-04 00:34:59', '2026-09-04 00:37:48', '2026-09-04 00:39:00'),
-(17, 'GEO-F53DFC39', 1, 1, 'aSDSFDGFASFDSF', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50962496, -68.15242714, 'EN_CAMINO', NULL, 15, NULL, '2026-09-04 00:55:14', NULL, NULL),
-(18, 'GEO-AF6A80F9', 1, 1, 'aSDSFDGFASFDSF', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50964103, -68.15265929, 'ACEPTADA', NULL, 15, NULL, '2026-09-04 01:00:50', NULL, NULL);
+(17, 'GEO-F53DFC39', 1, 1, 'aSDSFDGFASFDSF', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50962496, -68.15242714, 'FINALIZADA', NULL, 15, NULL, '2026-09-04 00:55:14', '2026-09-11 09:30:54', NULL),
+(18, 'GEO-AF6A80F9', 1, 1, 'aSDSFDGFASFDSF', 'Rios seco/av.santa fe', 'EL_ALTO', 'El Alto', -16.50964103, -68.15265929, 'FINALIZADA', NULL, 15, NULL, '2026-09-04 01:00:50', '2026-09-11 17:43:28', NULL),
+(19, 'GEO-48714325', 3, 2, 'sdsd', 'rio seco', 'EL_ALTO', 'rio seco', -16.50962653, -68.15261558, 'FINALIZADA', NULL, NULL, NULL, '2026-09-11 08:26:26', '2026-09-11 09:10:34', '2026-09-11 09:10:46'),
+(20, 'GEO-AC4D56D8', 3, 2, '[ASIGNACIÓN I.A. CASCADA] - ', 'rio seco', 'CENTRO', 'EL_ALTO', -16.50000000, -68.15000000, 'ACEPTADA', NULL, NULL, NULL, '2026-09-11 09:11:54', NULL, NULL),
+(21, 'GEO-7DB8A038', 1, 2, '', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'ACEPTADA', NULL, NULL, NULL, '2026-09-11 16:36:50', NULL, NULL),
+(22, 'GEO-7C7ECAD1', 1, 2, '[ASIGNACIÓN I.A. CASCADA] - ', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'ACEPTADA', NULL, NULL, NULL, '2026-09-11 16:38:21', NULL, NULL),
+(23, 'GEO-9F067800', 1, 2, '[ASIGNACIÓN I.A. CASCADA] - se que mo mifoco', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'FINALIZADA', NULL, 5, NULL, '2026-09-11 16:54:08', '2026-09-11 17:41:59', NULL),
+(24, 'GEO-B4FA33D5', 1, 1, '[ASIGNACIÓN I.A. CASCADA] - luz se quemo', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'FINALIZADA', NULL, 50, NULL, '2026-09-11 17:44:18', '2026-09-11 17:45:10', NULL),
+(25, 'GEO-B644242B', 1, 1, '[ASIGNACIÓN I.A. CASCADA] - se quemo mi luz', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'FINALIZADA', NULL, 5, NULL, '2026-09-11 20:25:23', '2026-09-11 20:26:33', NULL),
+(26, 'GEO-C608EC2F', 1, 1, 'scscas', 'Rios seco/av.santa fe', 'CENTRO', 'El Alto', -16.50000000, -68.15000000, 'FINALIZADA', NULL, 5, NULL, '2026-09-11 20:44:54', '2026-09-11 20:45:12', NULL),
+(27, 'GEO-D973F0D2', 4, 1, 'mi foco se quemo', 'rio seco', 'EL_ALTO', 'rio seco', -16.50634343, -68.21578064, 'PENDIENTE', NULL, NULL, NULL, '2026-09-11 21:10:40', NULL, NULL);
 
 --
 -- Disparadores `solicitudes_servicio`
@@ -1132,7 +1278,16 @@ INSERT INTO `tracking_solicitud_gps` (`id_tracking`, `id_solicitud`, `id_profesi
 (506, 17, 1, -16.50969726, -68.15257780, 0.00, '2026-09-04 00:58:36'),
 (507, 17, 1, -16.50968153, -68.15256257, 0.00, '2026-09-04 00:58:46'),
 (508, 17, 1, -16.50965322, -68.15235616, 0.00, '2026-09-04 01:00:11'),
-(509, 17, 1, -16.50962653, -68.15261558, 0.00, '2026-09-04 01:00:22');
+(509, 17, 1, -16.50962653, -68.15261558, 0.00, '2026-09-04 01:00:22'),
+(510, 17, 1, -16.50634343, -68.21578064, 0.00, '2026-09-11 09:21:53'),
+(511, 17, 1, -16.50629889, -68.21579457, 0.00, '2026-09-11 09:21:54'),
+(512, 23, 2, -16.50634343, -68.21578064, 0.00, '2026-09-11 17:40:40'),
+(513, 23, 2, -16.50634461, -68.21575585, 0.00, '2026-09-11 17:41:33'),
+(514, 23, 2, -16.50688200, -68.21546900, 0.00, '2026-09-11 17:41:43'),
+(515, 23, 2, -16.50634343, -68.21578064, 0.00, '2026-09-11 17:41:48'),
+(516, 12, 1, -16.50634343, -68.21578064, 0.00, '2026-09-11 17:42:36'),
+(517, 24, 1, -16.50629889, -68.21579457, 0.00, '2026-09-11 17:44:52'),
+(518, 25, 1, -16.50634343, -68.21578064, 0.00, '2026-09-11 20:25:53');
 
 -- --------------------------------------------------------
 
@@ -1157,7 +1312,8 @@ CREATE TABLE `transacciones_suscripcion` (
 --
 
 INSERT INTO `transacciones_suscripcion` (`id_transaccion`, `id_profesional`, `id_plan`, `tipo_transaccion`, `monto`, `metodo_pago`, `codigo_comprobante`, `estado_pago`, `fecha_pago`) VALUES
-(1, 1, NULL, 'PAQUETE_TOKENS', 10.00, 'QR_SIMPLE_BOLIVIA', 'ASFASFASADASD12313', 'CONFIRMADO', '2026-09-01 05:07:34');
+(1, 1, NULL, 'PAQUETE_TOKENS', 10.00, 'QR_SIMPLE_BOLIVIA', 'ASFASFASADASD12313', 'CONFIRMADO', '2026-09-01 05:07:34'),
+(2, 2, 2, 'MEMBRESIA_MENSUAL', 29.00, 'TRANSFERENCIA', '123456', 'CONFIRMADO', '2026-09-11 22:00:38');
 
 -- --------------------------------------------------------
 
@@ -1284,6 +1440,14 @@ ALTER TABLE `clientes`
   ADD UNIQUE KEY `id_usuario` (`id_usuario`);
 
 --
+-- Indices de la tabla `clientes_favoritos`
+--
+ALTER TABLE `clientes_favoritos`
+  ADD PRIMARY KEY (`id_favorito`),
+  ADD UNIQUE KEY `id_cliente` (`id_cliente`,`id_profesional`),
+  ADD KEY `fk_fav_profesional` (`id_profesional`);
+
+--
 -- Indices de la tabla `documentos_profesional`
 --
 ALTER TABLE `documentos_profesional`
@@ -1378,7 +1542,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `auditoria_logs`
 --
 ALTER TABLE `auditoria_logs`
-  MODIFY `id_log` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=184;
+  MODIFY `id_log` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=280;
 
 --
 -- AUTO_INCREMENT de la tabla `calificaciones`
@@ -1399,6 +1563,12 @@ ALTER TABLE `clientes`
   MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT de la tabla `clientes_favoritos`
+--
+ALTER TABLE `clientes_favoritos`
+  MODIFY `id_favorito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT de la tabla `documentos_profesional`
 --
 ALTER TABLE `documentos_profesional`
@@ -1408,13 +1578,13 @@ ALTER TABLE `documentos_profesional`
 -- AUTO_INCREMENT de la tabla `mensajes`
 --
 ALTER TABLE `mensajes`
-  MODIFY `id_mensaje` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id_mensaje` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id_notificacion` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_notificacion` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de la tabla `planes_suscripcion`
@@ -1438,19 +1608,19 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT de la tabla `solicitudes_servicio`
 --
 ALTER TABLE `solicitudes_servicio`
-  MODIFY `id_solicitud` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id_solicitud` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT de la tabla `tracking_solicitud_gps`
 --
 ALTER TABLE `tracking_solicitud_gps`
-  MODIFY `id_tracking` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=510;
+  MODIFY `id_tracking` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=519;
 
 --
 -- AUTO_INCREMENT de la tabla `transacciones_suscripcion`
 --
 ALTER TABLE `transacciones_suscripcion`
-  MODIFY `id_transaccion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_transaccion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
@@ -1479,6 +1649,13 @@ ALTER TABLE `calificaciones`
 --
 ALTER TABLE `clientes`
   ADD CONSTRAINT `fk_cliente_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `clientes_favoritos`
+--
+ALTER TABLE `clientes_favoritos`
+  ADD CONSTRAINT `fk_fav_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_fav_profesional` FOREIGN KEY (`id_profesional`) REFERENCES `profesionales` (`id_profesional`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `documentos_profesional`

@@ -130,6 +130,12 @@ if (!defined('BASE_URL')) {
                     <i class="fa-solid fa-user-graduate me-1"></i> Soy Técnico Profesional Calificado
                 </a>
             </div>
+            
+            <div class="mt-4 pt-2 border-top">
+                <a href="<?= BASE_URL ?>" class="text-muted text-decoration-none" style="font-weight: 600;">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Volver al Inicio
+                </a>
+            </div>
         </div>
     </div>
 
