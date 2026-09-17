@@ -42,58 +42,80 @@ class Membresia {
         return (int) $this->db->lastInsertId();
     }
 
-    public function listarPendientes(): array {
+    public function listarTodasTransacciones(): array {
         $stmt = $this->db->query("
-            SELECT t.id_transaccion, t.tipo_transaccion, t.monto, t.codigo_comprobante, t.fecha_pago,
+            SELECT t.id_transaccion, t.tipo_transaccion, t.monto, t.codigo_comprobante, t.fecha_pago, t.estado_pago,
                    p.id_profesional, pl.nombre_plan, u.nombre, u.apellido
             FROM transacciones_suscripcion t
             INNER JOIN profesionales p ON t.id_profesional = p.id_profesional
             INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
             LEFT JOIN planes_suscripcion pl ON t.id_plan = pl.id_plan
-            WHERE t.estado_pago = 'PENDIENTE'
-            ORDER BY t.fecha_pago ASC
+            ORDER BY 
+                CASE WHEN t.estado_pago = 'PENDIENTE' THEN 1 ELSE 2 END ASC,
+                t.fecha_pago DESC
         ");
         return $stmt->fetchAll();
     }
 
-    public function confirmarTransaccion(int $idTransaccion): void {
-        $stmt = $this->db->prepare("SELECT * FROM transacciones_suscripcion WHERE id_transaccion = :id LIMIT 1");
-        $stmt->execute([':id' => $idTransaccion]);
-        $trans = $stmt->fetch();
-
-        if (!$trans || $trans['estado_pago'] !== 'PENDIENTE') {
-            throw new Exception("Transacción no encontrada o ya procesada.");
-        }
-
-        $this->db->beginTransaction();
+   public function confirmarTransaccion($idTransaccion) {
+        $db = Database::getInstance()->getConnection();
+        
         try {
-            if ($trans['tipo_transaccion'] === 'MEMBRESIA_MENSUAL') {
-                $plan = $this->obtenerPlanPorId((int) $trans['id_plan']);
-                $stmtUp = $this->db->prepare("
-                    UPDATE profesionales
-                    SET id_plan = :id_plan, tokens_disponibles = tokens_disponibles + :tokens, fin_suscripcion = DATE_ADD(NOW(), INTERVAL 30 DAY)
-                    WHERE id_profesional = :id_prof
-                ");
-                $stmtUp->execute([
-                    ':id_plan' => $trans['id_plan'],
-                    ':tokens'  => $plan['tokens_otorgados'],
-                    ':id_prof' => $trans['id_profesional']
-                ]);
-            } elseif ($trans['tipo_transaccion'] === 'PAQUETE_TOKENS') {
-                $stmtUp = $this->db->prepare("
-                    UPDATE profesionales SET tokens_disponibles = tokens_disponibles + 10
-                    WHERE id_profesional = :id_prof
-                ");
-                $stmtUp->execute([':id_prof' => $trans['id_profesional']]);
+            $db->beginTransaction();
+
+            // 1. Obtener los datos de la transacción antes de confirmarla
+            $stmtTx = $db->prepare("
+                SELECT t.id_profesional, t.id_plan, t.tipo_transaccion, p.tokens_mensuales 
+                FROM transacciones_suscripcion t
+                LEFT JOIN planes_suscripcion p ON t.id_plan = p.id_plan
+                WHERE t.id_transaccion = :id
+            ");
+            $stmtTx->execute([':id' => $idTransaccion]);
+            $tx = $stmtTx->fetch(PDO::FETCH_ASSOC);
+
+            if (!$tx) {
+                throw new Exception("La transacción no existe.");
             }
 
-            $stmtConf = $this->db->prepare("UPDATE transacciones_suscripcion SET estado_pago = 'CONFIRMADO' WHERE id_transaccion = :id");
-            $stmtConf->execute([':id' => $idTransaccion]);
+            // 2. Cambiar el estado del pago a CONFIRMADO
+            $stmtUpdateTx = $db->prepare("UPDATE transacciones_suscripcion SET estado_pago = 'CONFIRMADO' WHERE id_transaccion = :id");
+            $stmtUpdateTx->execute([':id' => $idTransaccion]);
 
-            $this->db->commit();
+            // 3. Asignar los beneficios al Profesional
+            if ($tx['tipo_transaccion'] === 'MEMBRESIA_MENSUAL') {
+                // Si compró un plan (Ej. Básico o Premium)
+                $stmtProf = $db->prepare("
+                    UPDATE profesionales 
+                    SET id_plan = :id_plan,
+                        tokens_disponibles = tokens_disponibles + :tokens,
+                        fin_suscripcion = DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                    WHERE id_profesional = :id_prof
+                ");
+                $stmtProf->execute([
+                    ':id_plan' => $tx['id_plan'],
+                    ':tokens' => (int) $tx['tokens_mensuales'], // Asegúrate de que la columna se llame tokens_mensuales en la BD
+                    ':id_prof' => $tx['id_profesional']
+                ]);
+            } else {
+                // Si solo compró un paquete de tokens suelto
+                $stmtProf = $db->prepare("
+                    UPDATE profesionales 
+                    SET tokens_disponibles = tokens_disponibles + :tokens
+                    WHERE id_profesional = :id_prof
+                ");
+                $stmtProf->execute([
+                    ':tokens' => (int) $tx['tokens_mensuales'],
+                    ':id_prof' => $tx['id_profesional']
+                ]);
+            }
+
+            $db->commit();
+            return true;
+
         } catch (Exception $e) {
-            $this->db->rollBack();
-            throw $e;
+            $db->rollBack();
+            // Lanza el error para que el desarrollador pueda verlo si algo falla
+            throw new Exception("Error al confirmar: " . $e->getMessage()); 
         }
     }
 

@@ -150,8 +150,22 @@
             <?php endif; ?>
             <p class="page-subtitle">Adquiere tokens para poder enviar propuestas a los clientes. 1 Token = 1 Cliente Contactado.</p>
 
-            <div class="row g-4" id="plansSection">
-                <?php if(isset($planes)): ?>
+            <?php 
+                // Verificar si tiene un plan pagado activo y con tokens disponibles
+                $tienePlanActivo = (isset($perfil['id_plan']) && $perfil['id_plan'] > 1 && isset($perfil['tokens_disponibles']) && $perfil['tokens_disponibles'] > 0);
+            ?>
+
+            <?php if($tienePlanActivo): ?>
+                <div class="alert alert-info d-flex align-items-center rounded-4 shadow-sm border-0 mb-4" role="alert">
+                    <i class="fa-solid fa-crown fa-2x me-3 text-warning"></i>
+                    <div>
+                        <strong>¡Ya tienes una membresía activa!</strong><br>
+                        <span class="small">Actualmente tienes <b><?= (int)$perfil['tokens_disponibles'] ?> tokens</b> disponibles de tu plan actual. Debes consumir tus tokens antes de adquirir un nuevo plan.</span>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="row g-4" id="plansSection">
+                    <?php if(isset($planes)): ?>
                     <?php foreach($planes as $plan): ?>
                         <?php 
                             // Ignoramos el plan gratuito si el precio es 0
@@ -245,6 +259,7 @@
                     </div>
                 </div>
             </div>
+            <?php endif; ?> <!-- Cierre del if de $tienePlanActivo -->
 
         </div>
     </main>

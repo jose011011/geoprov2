@@ -258,7 +258,7 @@ class AdminController extends Controller {
         $membresiaModel = new Membresia();
         $this->view('admin/pagos', [
             'titulo' => 'GEO-PRO | Pagos Pendientes',
-            'pagos'  => $membresiaModel->listarPendientes()
+            'pagos'  => $membresiaModel->listarTodasTransacciones()
         ]);
     }
 
@@ -396,4 +396,5 @@ class AdminController extends Controller {
         header("Location: " . BASE_URL . "/admin/planes");
         exit;
     }
+    
 }

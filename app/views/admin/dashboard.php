@@ -87,7 +87,7 @@
     <main class="admin-main-content">
         <header class="admin-topbar">
             <button class="btn-toggle-sidebar" id="btnToggleSidebar"><i class="fa-solid fa-bars"></i></button>
-            <div class="d-none d-md-block"><span class="text-muted fw-bold">Plataforma GEO-PRO v2.0</span></div>
+            <div class="d-none d-md-block"><span class="text-muted fw-bold">Plataforma GEO-PRO</span></div>
             <a href="<?= BASE_URL ?>/auth/logout" class="topbar-logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Cerrar sesión</a>
         </header>
 

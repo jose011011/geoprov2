@@ -134,17 +134,20 @@
         </header>
 
         <div class="dashboard-content">
-            <h3 class="page-title">Cola de Verificación de Pagos</h3>
-            <p class="page-subtitle">Revisa los comprobantes QR para habilitar membresías y recargar tokens a los profesionales.</p>
+            <h3 class="page-title">Historial y Verificación de Pagos</h3>
+            <p class="page-subtitle">Revisa los comprobantes QR pendientes y consulta el historial de transacciones procesadas.</p>
 
-            <?php if (!empty($pagos)): ?>
+            <?php 
+                $pendientes = array_filter($pagos, fn($p) => $p['estado_pago'] === 'PENDIENTE');
+                if (!empty($pagos)): 
+            ?>
                 <!-- KPIs FINANCIEROS -->
                 <div class="row g-4 mb-4">
                     <div class="col-md-6 col-lg-4">
                         <div class="kpi-card warning">
                             <div class="kpi-icon-wrap bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                             <div>
-                                <div class="kpi-number text-dark"><?= count($pagos) ?></div>
+                                <div class="kpi-number text-dark"><?= count($pendientes) ?></div>
                                 <div class="kpi-label">Transacciones pendientes</div>
                             </div>
                         </div>
@@ -153,7 +156,7 @@
                         <div class="kpi-card success">
                             <div class="kpi-icon-wrap bg-success bg-opacity-10 text-success"><i class="fa-solid fa-sack-dollar"></i></div>
                             <div>
-                                <div class="kpi-number text-dark">Bs. <?= number_format(array_sum(array_column($pagos, 'monto')), 2) ?></div>
+                                <div class="kpi-number text-dark">Bs. <?= number_format(array_sum(array_column($pendientes, 'monto')), 2) ?></div>
                                 <div class="kpi-label">Recaudación por Aprobar</div>
                             </div>
                         </div>
@@ -226,22 +229,28 @@
                                         <span class="code-box"><?= htmlspecialchars($p['codigo_comprobante']) ?></span>
                                     </td>
                                     <td class="text-end">
-                                        <!-- Formularios Ocultos para envío seguro -->
-                                        <form id="formAprobar_<?= $p['id_transaccion'] ?>" method="POST" action="<?= BASE_URL ?>/admin/confirmarPago" style="display:none;">
-                                            <input type="hidden" name="id_transaccion" value="<?= $p['id_transaccion'] ?>">
-                                        </form>
-                                        <form id="formRechazar_<?= $p['id_transaccion'] ?>" method="POST" action="<?= BASE_URL ?>/admin/rechazarPago" style="display:none;">
-                                            <input type="hidden" name="id_transaccion" value="<?= $p['id_transaccion'] ?>">
-                                        </form>
-
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <button type="button" class="btn btn-outline-danger fw-bold px-3" onclick="abrirModal(<?= $p['id_transaccion'] ?>, 'RECHAZAR')">
-                                                <i class="fa-solid fa-xmark"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-success fw-bold px-3" onclick="abrirModal(<?= $p['id_transaccion'] ?>, 'APROBAR')">
-                                                <i class="fa-solid fa-check me-1"></i> Confirmar
-                                            </button>
-                                        </div>
+                                        <?php if ($p['estado_pago'] === 'PENDIENTE'): ?>
+                                            <!-- Formularios Ocultos para envío seguro -->
+                                            <form id="formAprobar_<?= $p['id_transaccion'] ?>" method="POST" action="<?= BASE_URL ?>/admin/confirmarPago" style="display:none;">
+                                                <input type="hidden" name="id_transaccion" value="<?= $p['id_transaccion'] ?>">
+                                            </form>
+                                            <form id="formRechazar_<?= $p['id_transaccion'] ?>" method="POST" action="<?= BASE_URL ?>/admin/rechazarPago" style="display:none;">
+                                                <input type="hidden" name="id_transaccion" value="<?= $p['id_transaccion'] ?>">
+                                            </form>
+    
+                                            <div class="d-flex justify-content-end gap-2">
+                                                <button type="button" class="btn btn-outline-danger fw-bold px-3" onclick="abrirModal(<?= $p['id_transaccion'] ?>, 'RECHAZAR')">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-success fw-bold px-3" onclick="abrirModal(<?= $p['id_transaccion'] ?>, 'APROBAR')">
+                                                    <i class="fa-solid fa-check me-1"></i> Confirmar
+                                                </button>
+                                            </div>
+                                        <?php elseif ($p['estado_pago'] === 'CONFIRMADO'): ?>
+                                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fa-solid fa-check-double me-1"></i> Aprobado</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><i class="fa-solid fa-ban me-1"></i> Rechazado</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

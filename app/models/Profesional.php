@@ -9,10 +9,12 @@ class Profesional {
     public function buscarPorUsuario(int $idUsuario): ?array {
         $stmt = $this->db->prepare("
             SELECT p.*, c.nombre_categoria, c.slug AS categoria_slug,
-                   pl.nombre_plan, pl.tokens_otorgados, pl.posicionamiento_destacado
+                   pl.nombre_plan, pl.tokens_otorgados, pl.posicionamiento_destacado,
+                   u.nombre, u.apellido, u.correo
             FROM profesionales p
             INNER JOIN categorias c ON p.id_categoria = c.id_categoria
             INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
+            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
             WHERE p.id_usuario = :id_usuario
             LIMIT 1
         ");
