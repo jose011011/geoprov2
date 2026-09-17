@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function() {
         formData.append('velocidad', velocidad || 0);
 
         try {
-            await fetch(`<?= BASE_URL ?>/tracking/actualizar`, {
+            await fetch(`<?= BASE_URL ?>/profesional/actualizarGPS`, {
                 method: 'POST',
                 body: formData
             });
@@ -161,7 +161,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // 4. Leer GPS del navegador
     if ("geolocation" in navigator) {
-        const opcionesGps = { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 };
+        // MEJORA BATERÍA: maximumAge en 5000 permite reusar caché reciente, timeout más flexible
+        const opcionesGps = { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 };
 
         navigator.geolocation.watchPosition(
             (posicion) => {
