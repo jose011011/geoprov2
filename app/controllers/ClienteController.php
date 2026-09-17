@@ -63,18 +63,65 @@ class ClienteController extends Controller {
         } else if (!empty($descripcionProblema)) {
             $esBusquedaIA = true;
             
-            // SIMULADOR DE LLM
-            $descLower = strtolower($descripcionProblema);
+            // SIMULADOR DE LLM MEJORADO: Detección inteligente con tolerancia a errores (Typos y Sinónimos)
+            $unwanted_array = ['Á'=>'A', 'É'=>'E', 'Í'=>'I', 'Ó'=>'O', 'Ú'=>'U', 'Ñ'=>'N', 'á'=>'a', 'é'=>'e', 'í'=>'i', 'ó'=>'o', 'ú'=>'u', 'ñ'=>'n'];
+            
+            // 1. Limpieza de texto (Normalización)
+            $descLimpia = strtolower(strtr($descripcionProblema, $unwanted_array));
+            $descLimpia = preg_replace('/[^a-z0-9\s]/', '', $descLimpia);
+            $palabrasCliente = explode(' ', $descLimpia); // Tokenización
+            
+            // 2. Base de conocimientos (Diccionario de Sinónimos)
+            $diccionario = [
+                'electr' => ['luz', 'lus', 'luces', 'electric', 'elec', 'chipa', 'chispa', 'enchufe', 'enchuf', 'cable', 'cables', 'cortocircuito', 'foco', 'focos', 'iluminacion', 'apagon', 'quemado', 'quemo', 'electrocuta', 'corriente', 'energia'],
+                'plomer' => ['agua', 'ava', 'tubo', 'tuberia', 'fuga', 'gotea', 'gotera', 'inodoro', 'banio', 'bano', 'cano', 'caneria', 'pileta', 'lavamano', 'ducha', 'desague', 'inunda', 'humedad', 'plomero', 'plomo', 'gas', 'calefon'],
+                'jardin' => ['jardin', 'pasto', 'cesped', 'cespe', 'arbol', 'arboles', 'planta', 'plantas', 'tierra', 'hojas', 'poda', 'podar', 'regar', 'riego', 'maleza', 'flores', 'flor'],
+                'cerraj' => ['llave', 'yave', 'yaves', 'chapa', 'puerta', 'cerrojo', 'candado', 'trancado', 'tranco', 'abrir', 'cerrado', 'cerrajero'],
+                'alban'  => ['pared', 'ladrillo', 'cemento', 'techo', 'construc', 'piso', 'ceramica', 'azulejo', 'grieta', 'rajadura', 'pintura', 'pintar', 'obra', 'albanil', 'muralla']
+            ];
+
+            $mejorCoincidencia = null;
+            $maxPuntaje = 0;
+
+            // 3. Motor de Inferencia (Fuzzy Matching con Distancia de Levenshtein)
             foreach ($categorias as $cat) {
-                $nombreCat = strtolower($cat['nombre_categoria']);
-                if ((str_contains($descLower, 'luz') || str_contains($descLower, 'electric')) && str_contains($nombreCat, 'electr')) {
-                    $categoriaDetectada = $cat; break;
+                $nombreCat = strtolower(strtr($cat['nombre_categoria'], $unwanted_array));
+                $puntaje = 0;
+                
+                $palabrasClave = [$nombreCat]; // Iniciamos con el nombre real de la categoría
+                foreach ($diccionario as $llaveDic => $palabras) {
+                    if (str_contains($nombreCat, $llaveDic)) {
+                        $palabrasClave = array_merge($palabrasClave, $palabras);
+                        break;
+                    }
                 }
-                if ((str_contains($descLower, 'agua') || str_contains($descLower, 'tubo') || str_contains($descLower, 'fuga')) && str_contains($nombreCat, 'plomer')) {
-                    $categoriaDetectada = $cat; break;
+
+                foreach ($palabrasCliente as $palabra) {
+                    if (strlen($palabra) < 3) continue; // Ignorar conectores cortos (de, la, el)
+                    
+                    foreach ($palabrasClave as $clave) {
+                        // Coincidencia exacta o contenida (ej: "enchufes" contiene "enchuf")
+                        if (str_contains($palabra, $clave) || str_contains($clave, $palabra)) {
+                            $puntaje += 10;
+                        } else {
+                            // Algoritmo Levenshtein: Calcula cuántas letras hay de diferencia (Typos)
+                            // Si escribe "luses" en vez de "luces", la distancia es 1.
+                            $distancia = levenshtein($palabra, $clave);
+                            if ($distancia === 1 || ($distancia === 2 && strlen($clave) >= 5)) {
+                                $puntaje += 5; // Suma puntos si es un error ortográfico muy parecido
+                            }
+                        }
+                    }
+                }
+                
+                if ($puntaje > $maxPuntaje) {
+                    $maxPuntaje = $puntaje;
+                    $mejorCoincidencia = $cat;
                 }
             }
-            if (!$categoriaDetectada && count($categorias) > 0) $categoriaDetectada = $categorias[0]; 
+            
+            // Si el modelo no logra entender (puntaje 0), devuelve la primera categoría por defecto
+            $categoriaDetectada = ($mejorCoincidencia) ? $mejorCoincidencia : (count($categorias) > 0 ? $categorias[0] : null);
         }
 
         $listaProfesionales = [];
