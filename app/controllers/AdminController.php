@@ -330,6 +330,7 @@ class AdminController extends Controller {
             exit;
         }
         try {
+            file_put_contents(__DIR__ . '/../../public/debug_error.log', date('Y-m-d H:i:s') . " - POST DATA: " . json_encode($_POST) . "\n", FILE_APPEND);
             $this->adminModel->crearCategoria(
                 $_POST['nombre_categoria'] ?? '',
                 $_POST['tipo_clasificacion'] ?? 'AMBOS',
@@ -338,6 +339,7 @@ class AdminController extends Controller {
             );
             $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CREAR_CATEGORIA', 'categorias', null);
         } catch (Exception $e) {
+            file_put_contents(__DIR__ . '/../../public/debug_error.log', date('Y-m-d H:i:s') . " - " . $e->getMessage() . "\n", FILE_APPEND);
             $err = urlencode($e->getMessage());
             header("Location: " . BASE_URL . "/admin/categorias?error=" . $err);
             exit;
