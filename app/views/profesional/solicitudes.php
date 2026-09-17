@@ -164,7 +164,7 @@
                 <a href="?estado=EN_PROCESO" class="tab-btn <?= $filtroActual === 'EN_PROCESO' ? 'active' : '' ?>">Trabajos Activos</a>
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4" id="jobListContainer">
                 <?php 
                 // Filtrado rápido en PHP para no mostrar las finalizadas (esas van al historial)
                 $solicitudesActivas = array_filter($solicitudes ?? [], function($s) {
@@ -373,5 +373,30 @@ function ejecutarAccion() {
         form.submit();
     }
 }
+
+// MAGIA DE ACTUALIZACIÓN EN TIEMPO REAL:
+// Si el profesional está viendo la pestaña principal, actualizamos los trabajos silenciosamente cada 10 segundos
+<?php if (empty($filtroActual) || $filtroActual === 'TODAS'): ?>
+setInterval(async function() {
+    // Si el modal está abierto, no actualizamos para no interrumpirlo
+    if (modalOverlay.classList.contains('active')) return;
+    
+    try {
+        const response = await fetch(window.location.href);
+        const html = await response.text();
+        
+        // Extraemos solo la lista de trabajos del HTML nuevo
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const nuevoContenido = doc.getElementById('jobListContainer').innerHTML;
+        
+        // Reemplazamos el contenedor sin recargar la página
+        document.getElementById('jobListContainer').innerHTML = nuevoContenido;
+    } catch (e) {
+        console.error("No se pudo actualizar la lista de trabajos automáticamente.");
+    }
+}, 10000);
+<?php endif; ?>
+
 </script>
 <?php require_once "../app/views/layouts/footer.php"; ?>
