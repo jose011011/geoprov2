@@ -337,9 +337,13 @@ class AdminController extends Controller {
                 $_POST['descripcion'] ?? null
             );
             $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CREAR_CATEGORIA', 'categorias', null);
-        } catch (Exception $e) { }
+        } catch (Exception $e) {
+            $err = urlencode($e->getMessage());
+            header("Location: " . BASE_URL . "/admin/categorias?error=" . $err);
+            exit;
+        }
 
-        header("Location: " . BASE_URL . "/admin/categorias");
+        header("Location: " . BASE_URL . "/admin/categorias?success=Categoria+creada");
         exit;
     }
 

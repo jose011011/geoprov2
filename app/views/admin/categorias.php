@@ -121,6 +121,13 @@
         <div class="dashboard-content">
             <h3 class="page-title">Gestión de Oficios y Categorías</h3>
             <p class="page-subtitle">Administra los servicios que los clientes pueden buscar y solicitar a través del modelo de Inteligencia Artificial.</p>
+            
+            <?php if (isset($_GET['error'])): ?>
+                <div class="alert alert-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> <?= htmlspecialchars($_GET['error']) ?></div>
+            <?php endif; ?>
+            <?php if (isset($_GET['success'])): ?>
+                <div class="alert alert-success fw-bold"><i class="fa-solid fa-check-circle me-2"></i> <?= htmlspecialchars($_GET['success']) ?></div>
+            <?php endif; ?>
 
             <!-- FORMULARIO NUEVA CATEGORÍA -->
             <div class="form-card">
