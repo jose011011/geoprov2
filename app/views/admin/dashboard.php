@@ -161,10 +161,15 @@
                                         </td>
                                         <td>
                                             <?php 
-                                                // Convertir el nombre del plan a un formato amigable (ej: GRATUITO_TOKENS -> Gratuito Tokens)
-                                                $nombrePlan = str_replace('_', ' ', htmlspecialchars($p['nombre_plan'] ?? 'Básico')); 
+                                                $codigoPlan = strtolower($p['nombre_plan'] ?? '');
+                                                $nombrePlanDisplay = 'Bronce (Gratuito)';
+                                                if (strpos($codigoPlan, 'basico') !== false || strpos($codigoPlan, 'plata') !== false) {
+                                                    $nombrePlanDisplay = 'Plata (Básico)';
+                                                } elseif (strpos($codigoPlan, 'premium') !== false || strpos($codigoPlan, 'oro') !== false) {
+                                                    $nombrePlanDisplay = 'Oro (Premium)';
+                                                }
                                             ?>
-                                            <span class="badge bg-dark text-white fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> <?= ucwords(strtolower($nombrePlan)) ?></span>
+                                            <span class="badge bg-dark text-white fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= $nombrePlanDisplay ?></span>
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill <?= claseBadgeEstado($p['estado_validacion'] ?? '') ?>"><?= htmlspecialchars($p['estado_validacion'] ?? 'PENDIENTE') ?></span>

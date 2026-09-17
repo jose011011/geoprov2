@@ -155,10 +155,18 @@
                         </div>
                     </div>
                     <div>
-                        <?php $plan = str_replace('_', ' ', htmlspecialchars($perfil['nombre_plan'] ?? 'Básico')); ?>
+                        <?php 
+                            $codigoPlan = strtolower($perfil['nombre_plan'] ?? '');
+                            $nombrePlanDisplay = 'Bronce (Gratuito)';
+                            if (strpos($codigoPlan, 'basico') !== false || strpos($codigoPlan, 'plata') !== false) {
+                                $nombrePlanDisplay = 'Plata (Básico)';
+                            } elseif (strpos($codigoPlan, 'premium') !== false || strpos($codigoPlan, 'oro') !== false) {
+                                $nombrePlanDisplay = 'Oro (Premium)';
+                            }
+                        ?>
                         <div class="bg-light border rounded px-4 py-2 text-center">
                             <span class="info-label mb-1">Membresía Actual</span>
-                            <span class="text-dark fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= ucwords(strtolower($plan)) ?></span>
+                            <span class="text-dark fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= $nombrePlanDisplay ?></span>
                         </div>
                     </div>
                 </div>

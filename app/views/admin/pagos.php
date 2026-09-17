@@ -217,7 +217,16 @@
                                     <td>
                                         <?php if ($p['tipo_transaccion'] === 'MEMBRESIA_MENSUAL'): ?>
                                             <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-1 d-inline-block"><i class="fa-solid fa-gem me-1"></i> Plan Suscripción</span><br>
-                                            <small class="text-muted fw-bold"><?= htmlspecialchars(str_replace('_', ' ', $p['nombre_plan'] ?? '')) ?></small>
+                                            <?php 
+                                                $codigoPlan = strtolower($p['nombre_plan'] ?? '');
+                                                $nombrePlanDisplay = 'Bronce (Gratuito)';
+                                                if (strpos($codigoPlan, 'basico') !== false || strpos($codigoPlan, 'plata') !== false) {
+                                                    $nombrePlanDisplay = 'Plata (Básico)';
+                                                } elseif (strpos($codigoPlan, 'premium') !== false || strpos($codigoPlan, 'oro') !== false) {
+                                                    $nombrePlanDisplay = 'Oro (Premium)';
+                                                }
+                                            ?>
+                                            <small class="text-muted fw-bold">Plan <?= $nombrePlanDisplay ?></small>
                                         <?php else: ?>
                                             <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill"><i class="fa-solid fa-coins me-1"></i> Paquete de Tokens</span>
                                         <?php endif; ?>

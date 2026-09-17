@@ -41,10 +41,11 @@ class Admin {
 
     public function obtenerProfesionalDetalle(int $idProfesional): ?array {
         $stmt = $this->db->prepare("
-            SELECT p.*, u.nombre, u.apellido, u.correo, u.celular, c.nombre_categoria
+            SELECT p.*, u.nombre, u.apellido, u.correo, u.celular, c.nombre_categoria, pl.nombre_plan
             FROM profesionales p
             INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
             INNER JOIN categorias c ON p.id_categoria = c.id_categoria
+            LEFT JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
             WHERE p.id_profesional = :id
             LIMIT 1
         ");
