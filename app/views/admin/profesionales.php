@@ -155,9 +155,16 @@
                             <?php foreach ($profesionales as $p): ?>
                                 <?php 
                                     $nombreCat = htmlspecialchars($p['nombre_categoria'] ?? 'Sin Categoría');
-                                    // Guardamos el código original del plan (ej: premium_destacado) para el JS
                                     $codigoPlan = strtolower($p['nombre_plan'] ?? '');
-                                    $nombrePlanDisplay = str_replace('_', ' ', htmlspecialchars($p['nombre_plan'] ?? 'Básico')); 
+                                    
+                                    // Mapeo de nombres de planes para que coincida con el dashboard del profesional
+                                    $nombrePlanDisplay = 'Bronce (Gratuito)';
+                                    if (strpos($codigoPlan, 'basico') !== false || strpos($codigoPlan, 'plata') !== false) {
+                                        $nombrePlanDisplay = 'Plata (Básico)';
+                                    } elseif (strpos($codigoPlan, 'premium') !== false || strpos($codigoPlan, 'oro') !== false) {
+                                        $nombrePlanDisplay = 'Oro (Premium)';
+                                    }
+                                    
                                     $estado = htmlspecialchars($p['estado_validacion'] ?? 'PENDIENTE');
                                 ?>
                                 <tr class="data-row" data-categoria="<?= $nombreCat ?>" data-plan="<?= $codigoPlan ?>">
@@ -177,7 +184,7 @@
                                         <small class="text-muted fw-bold"><?= ($p['tipo_prestador'] ?? '') === 'TECNICO_PROFESIONAL' ? 'Profesional' : 'Empírico' ?></small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-dark text-white"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= ucwords(strtolower($nombrePlanDisplay)) ?></span>
+                                        <span class="badge bg-dark text-white"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= $nombrePlanDisplay ?></span>
                                     </td>
                                     <td>
                                         <span class="badge rounded-pill <?= claseBadgeEstado($estado) ?>"><?= $estado ?></span>

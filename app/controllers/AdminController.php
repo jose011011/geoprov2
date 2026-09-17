@@ -164,7 +164,7 @@ class AdminController extends Controller {
             FROM profesionales p
             INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
             INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
+            LEFT JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
         ";
 
         if ($filtro !== 'TODOS') {
