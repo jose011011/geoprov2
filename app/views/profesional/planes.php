@@ -10,16 +10,16 @@
                             <span class="badge bg-success mb-2">Plan Actual</span>
                         <?php endif; ?>
                         <h5><?= htmlspecialchars($p['nombre_plan']) ?></h5>
-                        <div class="fs-3 fw-bold my-2">Bs <?= number_format($p['precio_mensual'], 2) ?><small class="fs-6 text-muted">/mes</small></div>
+                        <div class="fs-3 fw-bold my-2">Bs <?= number_format($p['precio'], 2) ?><small class="fs-6 text-muted">/mes</small></div>
                         <p class="text-muted small"><?= htmlspecialchars($p['descripcion']) ?></p>
                         <ul class="list-unstyled small text-start">
-                            <li><i class="fa-solid fa-check text-success me-1"></i> <?= (int)$p['tokens_mensuales'] ?> tokens/mes</li>
+                            <li><i class="fa-solid fa-check text-success me-1"></i> <?= (int)$p['tokens_otorgados'] ?> tokens/mes</li>
                             <?php if ($p['posicionamiento_destacado']): ?>
                                 <li><i class="fa-solid fa-check text-success me-1"></i> Posicionamiento destacado</li>
                             <?php endif; ?>
                         </ul>
                         <?php if ((int)$perfil['id_plan'] !== (int)$p['id_plan']): ?>
-                            <?php if ((float)$p['precio_mensual'] > 0): ?>
+                            <?php if ((float)$p['precio'] > 0): ?>
                                 <a href="<?= BASE_URL ?>/membresia/comprobantePlan/<?= $p['id_plan'] ?>" class="btn btn-success w-100">Elegir plan</a>
                             <?php endif; ?>
                         <?php endif; ?>

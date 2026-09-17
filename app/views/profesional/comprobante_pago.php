@@ -4,7 +4,7 @@
         <div class="col-md-5">
             <div class="card p-4 text-center">
                 <h5><?= htmlspecialchars($plan['nombre_plan']) ?></h5>
-                <div class="fs-2 fw-bold my-2">Bs <?= number_format($plan['precio_mensual'], 2) ?></div>
+                <div class="fs-2 fw-bold my-2">Bs <?= number_format($plan['precio'], 2) ?></div>
 
                 <div class="bg-light p-4 rounded my-3">
                     <i class="fa-solid fa-qrcode fa-5x text-secondary"></i>

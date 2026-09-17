@@ -41,7 +41,7 @@ class MembresiaController extends Controller {
                 $error = "Ingrese un código de comprobante válido (mínimo 4 caracteres).";
             } else {
                 try {
-                    $this->membresiaModel->solicitarCambioPlan((int) $perfil['id_profesional'], (int) $idPlan, (float) $plan['precio_mensual'], $codigo);
+                    $this->membresiaModel->solicitarCambioPlan((int) $perfil['id_profesional'], (int) $idPlan, (float) $plan['precio'], $codigo);
                     header("Location: " . BASE_URL . "/profesional/dashboard?pago_enviado=1");
                     exit;
                 } catch (Exception $e) {
@@ -80,7 +80,7 @@ class MembresiaController extends Controller {
 
         $this->view('profesional/comprobante_pago', [
             'titulo' => 'GEO-PRO | Comprar Tokens',
-            'plan'   => ['nombre_plan' => 'Paquete de 10 Tokens', 'precio_mensual' => 10.00],
+            'plan'   => ['nombre_plan' => 'Paquete de 10 Tokens', 'precio' => 10.00],
             'error'  => $error,
             'tipo'   => 'tokens'
         ]);

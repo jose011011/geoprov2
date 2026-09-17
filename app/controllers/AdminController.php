@@ -285,7 +285,9 @@ class AdminController extends Controller {
             if ($idUsuarioProf) {
                 $notifModel->crear((int) $idUsuarioProf, 'PAGO_CONFIRMADO', 'Tu pago fue confirmado. ¡Membresía activada!', BASE_URL . '/profesional/dashboard');
             }
-        } catch (Exception $e) { }
+        } catch (Exception $e) {
+            die("<h1>Error al confirmar el pago:</h1><p>" . $e->getMessage() . "</p><br><p>Por favor revisa la base de datos o contacta a soporte.</p>");
+        }
 
         header("Location: " . BASE_URL . "/admin/pagos");
         exit;
@@ -374,8 +376,8 @@ class AdminController extends Controller {
                 
                 // Detecta dinámicamente cómo se llaman tus columnas en la BD
                 $columnas = $db->query("SHOW COLUMNS FROM planes_suscripcion")->fetchAll(PDO::FETCH_COLUMN);
-                $colPrecio = in_array('precio', $columnas) ? 'precio' : 'precio_mensual';
-                $colTokens = in_array('tokens_otorgados', $columnas) ? 'tokens_otorgados' : 'tokens_mensuales';
+                $colPrecio = in_array('precio', $columnas) ? 'precio' : 'precio';
+                $colTokens = in_array('tokens_otorgados', $columnas) ? 'tokens_otorgados' : 'tokens_otorgados';
 
                 // Actualizamos usando el ID exacto
                 $sql = "UPDATE planes_suscripcion SET {$colPrecio} = :precio, {$colTokens} = :tokens WHERE id_plan = :id";

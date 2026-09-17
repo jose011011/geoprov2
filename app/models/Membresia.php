@@ -65,7 +65,7 @@ class Membresia {
 
             // 1. Obtener los datos de la transacción antes de confirmarla
             $stmtTx = $db->prepare("
-                SELECT t.id_profesional, t.id_plan, t.tipo_transaccion, p.tokens_mensuales 
+                SELECT t.id_profesional, t.id_plan, t.tipo_transaccion, p.tokens_otorgados 
                 FROM transacciones_suscripcion t
                 LEFT JOIN planes_suscripcion p ON t.id_plan = p.id_plan
                 WHERE t.id_transaccion = :id
@@ -87,24 +87,24 @@ class Membresia {
                 $stmtProf = $db->prepare("
                     UPDATE profesionales 
                     SET id_plan = :id_plan,
-                        tokens_disponibles = tokens_disponibles + :tokens,
+                        tokens_disponibles = COALESCE(tokens_disponibles, 0) + :tokens,
                         fin_suscripcion = DATE_ADD(CURDATE(), INTERVAL 30 DAY)
                     WHERE id_profesional = :id_prof
                 ");
                 $stmtProf->execute([
                     ':id_plan' => $tx['id_plan'],
-                    ':tokens' => (int) $tx['tokens_mensuales'], // Asegúrate de que la columna se llame tokens_mensuales en la BD
+                    ':tokens' => (int) $tx['tokens_otorgados'],
                     ':id_prof' => $tx['id_profesional']
                 ]);
             } else {
                 // Si solo compró un paquete de tokens suelto
                 $stmtProf = $db->prepare("
                     UPDATE profesionales 
-                    SET tokens_disponibles = tokens_disponibles + :tokens
+                    SET tokens_disponibles = COALESCE(tokens_disponibles, 0) + :tokens
                     WHERE id_profesional = :id_prof
                 ");
                 $stmtProf->execute([
-                    ':tokens' => (int) $tx['tokens_mensuales'],
+                    ':tokens' => (int) $tx['tokens_otorgados'],
                     ':id_prof' => $tx['id_profesional']
                 ]);
             }
