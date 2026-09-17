@@ -155,7 +155,15 @@
                 $tienePlanActivo = (isset($perfil['id_plan']) && $perfil['id_plan'] > 1 && isset($perfil['tokens_disponibles']) && $perfil['tokens_disponibles'] > 0);
             ?>
 
-            <?php if($tienePlanActivo): ?>
+            <?php if(isset($tienePagoPendiente) && $tienePagoPendiente): ?>
+                <div class="alert alert-warning d-flex align-items-center rounded-4 shadow-sm border-0 mb-4" role="alert">
+                    <i class="fa-solid fa-clock-rotate-left fa-2x me-3"></i>
+                    <div>
+                        <strong>¡Tienes un pago en revisión!</strong><br>
+                        <span class="small">El departamento financiero está verificando tu comprobante. Por favor, espera a que se apruebe antes de solicitar otro plan.</span>
+                    </div>
+                </div>
+            <?php elseif($tienePlanActivo): ?>
                 <div class="alert alert-info d-flex align-items-center rounded-4 shadow-sm border-0 mb-4" role="alert">
                     <i class="fa-solid fa-crown fa-2x me-3 text-warning"></i>
                     <div>

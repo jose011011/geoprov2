@@ -133,10 +133,16 @@ class ProfesionalController extends Controller {
         $stmt = $db->query("SELECT * FROM planes_suscripcion ORDER BY id_plan ASC");
         $planes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Verificamos si tiene un pago pendiente
+        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM transacciones_suscripcion WHERE id_profesional = :id_prof AND estado_pago = 'PENDIENTE'");
+        $stmtCheck->execute([':id_prof' => $perfil['id_profesional']]);
+        $tienePagoPendiente = ($stmtCheck->fetchColumn() > 0);
+
         $this->view('profesional/comprar_tokens', [
             'titulo' => 'GEO-PRO | Tienda de Tokens y Planes',
             'perfil' => $perfil,
-            'planes' => $planes
+            'planes' => $planes,
+            'tienePagoPendiente' => $tienePagoPendiente
         ]);
     }
 
@@ -243,9 +249,22 @@ class ProfesionalController extends Controller {
         $codigoComprobante = trim($_POST['codigo_comprobante']);
         $tipoTransaccion = 'MEMBRESIA_MENSUAL'; // Como están comprando un Plan, es Membresía
 
+        // Validar que no tenga pagos pendientes
+        $db = Database::getInstance()->getConnection();
+        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM transacciones_suscripcion WHERE id_profesional = :id_prof AND estado_pago = 'PENDIENTE'");
+        $stmtCheck->execute([':id_prof' => $perfil['id_profesional']]);
+        if ($stmtCheck->fetchColumn() > 0) {
+            header("Location: " . BASE_URL . "/profesional/comprarTokens?error=pago_pendiente");
+            exit;
+        }
+
+        // Validar que no tenga un plan activo con tokens
+        if (isset($perfil['id_plan']) && $perfil['id_plan'] > 1 && isset($perfil['tokens_disponibles']) && $perfil['tokens_disponibles'] > 0) {
+            header("Location: " . BASE_URL . "/profesional/comprarTokens?error=plan_activo");
+            exit;
+        }
+
         try {
-            $db = Database::getInstance()->getConnection();
-            
             // Insertamos el pago en estado PENDIENTE
             $stmt = $db->prepare("
                 INSERT INTO transacciones_suscripcion 
