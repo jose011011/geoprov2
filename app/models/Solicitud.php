@@ -162,32 +162,23 @@ class Solicitud {
     /* ========================================================
        ASIGNACIÓN I.A. CASCADA - OBTENER TRABAJOS DISPONIBLES
        ======================================================== */
-    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf, $idProfesional) {
+    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf, $idCategoriaProf, $idProfesional = null) {
         $db = Database::getInstance()->getConnection();
         
-        // 1. Validar que el profesional no tenga un trabajo activo. (Solo uno a la vez)
-        $stmtActivo = $db->prepare("
-            SELECT id_solicitud 
-            FROM solicitudes_servicio 
-            WHERE id_profesional = :id_prof 
-              AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO')
-            LIMIT 1
-        ");
-        $stmtActivo->execute([':id_prof' => $idProfesional]);
-        if ($stmtActivo->fetch()) {
-            return []; // Ya tiene un trabajo activo, no puede ver nuevas oportunidades.
+        // CANDADO: Evitar que vea trabajos si ya tiene uno activo (Si se pasó el ID del profesional)
+        if ($idProfesional) {
+            $stmtActivo = $db->prepare("SELECT id_solicitud FROM solicitudes_servicio WHERE id_profesional = :id_prof AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO') LIMIT 1");
+            $stmtActivo->execute([':id_prof' => $idProfesional]);
+            if ($stmtActivo->fetch()) return []; // Bandeja vacía
         }
 
-        // 2. CONFIGURACIÓN DE LA CASCADA (Retraso en Minutos)
-        $minutosRetraso = 10; // Por defecto (Gratuitos) esperan 10 min
-        
+        $minutosRetraso = 7; // Por defecto (Gratuitos)
         if ($idPlanProfesional == 3) {
-            $minutosRetraso = 0; // ORO PREMIUM: Lo ve al instante (0 min)
+            $minutosRetraso = 0; // PREMIUM: Lo ve al instante
         } elseif ($idPlanProfesional == 2) {
-            $minutosRetraso = 5; // PLATA BÁSICO: Lo ve con 5 minutos de retraso
+            $minutosRetraso = 3; // BÁSICO: 3 minutos de retraso
         }
         
-        // Consulta SQL con la barrera de tiempo I.A.
         $sql = "
             SELECT s.*, c.zona AS zona_cliente, u.nombre AS cliente_nombre, u.apellido AS cliente_apellido
             FROM solicitudes_servicio s
@@ -195,14 +186,15 @@ class Solicitud {
             INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
             WHERE s.estado_servicio = 'PENDIENTE' 
               AND s.id_profesional IS NULL 
+              AND s.id_categoria = :id_categoria
               AND s.macrodistrito = :macrodistrito
-              -- MAGIA DE LA CASCADA: Solo muestra solicitudes cuya edad supere el retraso de tu plan
               AND s.fecha_solicitud <= DATE_SUB(NOW(), INTERVAL :retraso MINUTE)
             ORDER BY s.fecha_solicitud DESC
         ";
         
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':macrodistrito', $macrodistritoProf, PDO::PARAM_STR);
+        $stmt->bindValue(':id_categoria', $idCategoriaProf, PDO::PARAM_INT);
         $stmt->bindValue(':retraso', $minutosRetraso, PDO::PARAM_INT);
         $stmt->execute();
         

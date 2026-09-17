@@ -86,10 +86,11 @@ class ProfesionalController extends Controller {
         
         if ($filtro === 'PENDIENTE') {
             // LÓGICA DE CASCADA: Buscar trabajos nuevos disponibles en su zona según su plan
-            // (Premium los ve al instante, Básicos esperan 5 min, Gratis 10 min)
+            // (Premium los ve al instante, Básicos esperan 3 min, Gratis 7 min)
             $solicitudes = $solicitudModel->obtenerOportunidadesCascada(
                 (int) $perfil['id_plan'], 
                 $perfil['macrodistrito_base'] ?? 'CENTRO',
+                (int) $perfil['id_categoria'],
                 (int) $perfil['id_profesional']
             );
         } else {
@@ -480,18 +481,19 @@ class ProfesionalController extends Controller {
                 exit;
             }
 
-            // 3. REGISTRAMOS LA SOLICITUD
+           // 3. REGISTRAMOS LA SOLICITUD EN LA PISCINA
             $codigoSeguimiento = 'GEO-' . strtoupper(substr(md5(uniqid()), 0, 8));
             $stmtSol = $db->prepare("
                 INSERT INTO solicitudes_servicio 
-                (codigo_seguimiento, id_cliente, id_profesional, descripcion_problema, direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino, estado_servicio) 
-                VALUES (:codigo, :idc, :idp, :desc, :dir, :macro, :zona, :lat, :lng, 'PENDIENTE')
+                (codigo_seguimiento, id_cliente, id_categoria, id_profesional, descripcion_problema, direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino, estado_servicio) 
+                VALUES (:codigo, :idc, :idcat, :idp, :desc, :dir, :macro, :zona, :lat, :lng, 'PENDIENTE')
             ");
             
             $stmtSol->execute([
                 ':codigo' => $codigoSeguimiento,
                 ':idc' => $idCliente,
-                ':idp' => $idProfesionalAsignado,
+                ':idcat' => $idCategoria, // AQUÍ GUARDAMOS LA CATEGORÍA
+                ':idp' => $idProfesionalAsignado, // Será NULL si es por Cascada automática
                 ':desc' => $descripcion,
                 ':dir' => $direccion,
                 ':macro' => $perfil['macrodistrito_base'] ?? 'CENTRO',
@@ -535,5 +537,63 @@ class ProfesionalController extends Controller {
             'perfil'    => $perfil,
             'solicitud' => $solicitud
         ]);
+    }
+
+
+    /* ========================================================
+       12. ENDPOINT AJAX: LATIDO EN TIEMPO REAL (POLLING)
+       ======================================================== */
+    public function checkNuevasSolicitudes() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+
+        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
+        
+        // Si no está disponible o no tiene perfil, respondemos 0 para no molestarlo
+        if (!$perfil || $perfil['estado_disponibilidad'] !== 'DISPONIBLE') {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true, 'nuevas' => 0]);
+            exit;
+        }
+
+        require_once "../app/models/Solicitud.php";
+        $solicitudModel = new Solicitud();
+
+        // Ejecutamos la magia de la cascada
+        $solicitudes = $solicitudModel->obtenerOportunidadesCascada(
+            (int) $perfil['id_plan'], 
+            $perfil['macrodistrito_base'] ?? 'CENTRO',
+            (int) $perfil['id_categoria'],
+            (int) $perfil['id_profesional']
+        );
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'ok' => true, 
+            'nuevas' => count($solicitudes)
+        ]);
+        exit;
+    }
+
+
+    /* ========================================================
+       ENDPOINT AJAX: ACTUALIZAR UBICACIÓN GPS DEL PROFESIONAL
+       ======================================================== */
+    public function actualizarGPS() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) exit;
+
+        $lat = $_POST['lat'] ?? null;
+        $lng = $_POST['lng'] ?? null;
+
+        if ($lat && $lng) {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE profesionales SET latitud_actual = :lat, longitud_actual = :lng WHERE id_usuario = :id_user");
+            $stmt->execute([':lat' => $lat, ':lng' => $lng, ':id_user' => (int)$_SESSION['user_id']]);
+            echo json_encode(['ok' => true]);
+        }
+        exit;
     }
 }

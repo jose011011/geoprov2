@@ -398,5 +398,70 @@ setInterval(async function() {
 }, 10000);
 <?php endif; ?>
 
+
+
+
+
+
+
+// =========================================================
+// RADAR EN TIEMPO REAL (AJAX POLLING PARA LA CASCADA)
+// =========================================================
+document.addEventListener("DOMContentLoaded", function() {
+    // Verificamos si estamos en la pestaña de "Pendientes de Acción"
+    const urlParams = new URLSearchParams(window.location.search);
+    const estadoActual = urlParams.get('estado');
+    
+    if (estadoActual === 'PENDIENTE' || !estadoActual) {
+        // Guardamos cuántos trabajos está viendo ahorita en pantalla
+        let trabajosEnPantalla = <?= count($solicitudes ?? []) ?>;
+        
+        // Cada 10 segundos hacemos la consulta silenciosa
+        setInterval(() => {
+            fetch('<?= BASE_URL ?>/profesional/checkNuevasSolicitudes', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    if (data.nuevas > trabajosEnPantalla) {
+                        mostrarAlertaNuevoTrabajo();
+                    }
+                    // Siempre actualizamos la variable para reflejar la realidad, suba o baje
+                    trabajosEnPantalla = data.nuevas;
+                }
+            })
+            .catch(err => console.error("Error en el radar:", err));
+        }, 10000); // 10,000 milisegundos = 10 segundos
+    }
+});
+
+function mostrarAlertaNuevoTrabajo() {
+    // Creamos un banner flotante atractivo
+    const banner = document.createElement('div');
+    banner.style.position = 'fixed';
+    banner.style.bottom = '30px';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.backgroundColor = '#10b981'; // Verde GEO-PRO
+    banner.style.color = 'white';
+    banner.style.padding = '15px 25px';
+    banner.style.borderRadius = '50px';
+    banner.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.4)';
+    banner.style.fontWeight = 'bold';
+    banner.style.zIndex = '9999';
+    banner.style.cursor = 'pointer';
+    banner.style.display = 'flex';
+    banner.style.alignItems = 'center';
+    banner.style.gap = '10px';
+    banner.style.animation = 'slideUp 0.5s ease-out';
+    
+    banner.innerHTML = '<i class="fa-solid fa-bell fa-shake"></i> ¡Nuevo trabajo disponible en tu zona! Clic aquí para actualizar.';
+    
+    // Al hacer clic, recarga la página para mostrar la nueva tarjeta
+    banner.onclick = () => window.location.reload();
+    
+    document.body.appendChild(banner);
+}
 </script>
 <?php require_once "../app/views/layouts/footer.php"; ?>

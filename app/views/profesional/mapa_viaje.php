@@ -197,6 +197,42 @@ document.addEventListener("DOMContentLoaded", function() {
         );
     }
 });
+
+
+
+
+// =========================================================
+// MOTOR GPS: TRANSMISOR DEL PROFESIONAL
+// =========================================================
+document.addEventListener("DOMContentLoaded", function() {
+    if ("geolocation" in navigator) {
+        // watchPosition lee el GPS constantemente mientras el profesional se mueve
+        navigator.geolocation.watchPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // Enviamos las coordenadas al servidor silenciosamente
+            const formData = new FormData();
+            formData.append('lat', lat);
+            formData.append('lng', lng);
+
+            fetch('<?= BASE_URL ?>/profesional/actualizarGPS', {
+                method: 'POST',
+                body: formData
+            }).catch(err => console.error("Error transmitiendo GPS:", err));
+            
+            // Aquí puedes agregar la lógica de Leaflet/Google Maps para mover el propio marcador del técnico
+            // miMarcador.setLatLng([lat, lng]);
+
+        }, function(error) {
+            console.warn("GPS no disponible o denegado por el usuario.");
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 5000
+        });
+    }
+});
 </script>
 
 <?php require_once "../app/views/layouts/footer.php"; ?>

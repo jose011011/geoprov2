@@ -352,4 +352,25 @@ class ClienteController extends Controller {
             'cliente' => $cliente
         ]);
     }
+
+    /* ========================================================
+       ENDPOINT AJAX: RASTREAR AL PROFESIONAL ASIGNADO
+       ======================================================== */
+    public function rastrearProfesional($idSolicitud) {
+        if (!isset($_SESSION['user_id'])) exit;
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("
+            SELECT p.latitud_actual, p.longitud_actual 
+            FROM solicitudes_servicio s
+            INNER JOIN profesionales p ON s.id_profesional = p.id_profesional
+            WHERE s.id_solicitud = :id_sol
+        ");
+        $stmt->execute([':id_sol' => (int)$idSolicitud]);
+        $coords = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        header('Content-Type: application/json');
+        echo json_encode($coords ?: ['latitud_actual' => null, 'longitud_actual' => null]);
+        exit;
+    }
 }

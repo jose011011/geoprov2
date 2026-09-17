@@ -266,6 +266,48 @@ body { background: var(--geo-bg) !important; color: var(--geo-text); font-family
             consultarPosicion();
             setInterval(consultarPosicion, 5000);
         });
+
+        // =========================================================
+// MOTOR GPS: RECEPTOR DEL CLIENTE
+// =========================================================
+document.addEventListener("DOMContentLoaded", function() {
+    // Solo rastreamos si el estado es EN_CAMINO
+    const estadoServicio = '<?= $solicitud["estado_servicio"] ?>';
+    const idSolicitud = <?= $solicitud["id_solicitud"] ?>;
+    
+    // Si tienes un marcador de Leaflet guardado en una variable global, úsala aquí. 
+    // Supondremos que se llama 'marcadorProfesional'
+    
+    if (estadoServicio === 'EN_CAMINO') {
+        setInterval(() => {
+            fetch('<?= BASE_URL ?>/cliente/rastrearProfesional/' + idSolicitud)
+            .then(response => response.json())
+            .then(data => {
+                if (data.latitud_actual && data.longitud_actual) {
+                    const nuevaLat = parseFloat(data.latitud_actual);
+                    const nuevaLng = parseFloat(data.longitud_actual);
+                    
+                    // Movemos suavemente el icono de la moto en el mapa del cliente
+                    if (typeof marcadorProfesional !== 'undefined') {
+                        marcadorProfesional.setLatLng([nuevaLat, nuevaLng]);
+                        // mapa.panTo([nuevaLat, nuevaLng]); // Opcional: Centrar el mapa automáticamente
+                    }
+                    console.log("Técnico detectado en:", nuevaLat, nuevaLng);
+                }
+            })
+            .catch(err => console.error("Error rastreando:", err));
+        }, 5000); // Consulta cada 5 segundos
+    }
+});
+
+
+
+
+
+
+
+
+
         </script>
     <?php endif; ?>
 
