@@ -48,6 +48,7 @@ class ClienteController extends Controller {
         $idUsuario = (int) $_SESSION['user_id'];
         $descripcionProblema = $_POST['descripcion'] ?? ''; 
         $idCategoriaDirecta = $_GET['cat'] ?? null; 
+        $idProfSeleccionado = (int) ($_GET['id_prof'] ?? 0);
 
         $db = Database::getInstance()->getConnection();
         
@@ -56,7 +57,12 @@ class ClienteController extends Controller {
         $categoriaDetectada = null;
         $esBusquedaIA = false; 
 
-        if ($idCategoriaDirecta) {
+        if ($idProfSeleccionado > 0) {
+            // Si viene del catálogo manual, obtenemos la categoría del profesional directamente
+            $stmt = $db->prepare("SELECT c.* FROM categorias c INNER JOIN profesionales p ON c.id_categoria = p.id_categoria WHERE p.id_profesional = :id");
+            $stmt->execute([':id' => $idProfSeleccionado]);
+            $categoriaDetectada = $stmt->fetch(PDO::FETCH_ASSOC);
+        } else if ($idCategoriaDirecta) {
             $stmt = $db->prepare("SELECT * FROM categorias WHERE id_categoria = :id");
             $stmt->execute([':id' => $idCategoriaDirecta]);
             $categoriaDetectada = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -165,7 +171,8 @@ class ClienteController extends Controller {
             'categoria' => $categoriaDetectada,
             'profesionales' => $listaProfesionales,
             'esBusquedaIA' => $esBusquedaIA,
-            'clienteInfo' => $clienteInfo
+            'clienteInfo' => $clienteInfo,
+            'idProfSeleccionado' => $idProfSeleccionado
         ]);
     }
 
@@ -486,59 +493,12 @@ class ClienteController extends Controller {
         $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
 
         if ($idProfesional > 0) {
-            // Redirige al formulario de crear solicitud, pasándole el ID del técnico por la URL
-            // Asegúrate de que tu vista de crear solicitud lea este $_GET['id_prof']
-            header("Location: " . BASE_URL . "/cliente/nuevaSolicitud?id_prof=" . $idProfesional);
+            // Redirige al formulario universal, pasándole el ID del técnico
+            header("Location: " . BASE_URL . "/cliente/buscarEspecialista?id_prof=" . $idProfesional);
             exit;
         }
 
         header("Location: " . BASE_URL . "/cliente/especialistas?error=id_invalido");
         exit;
-    }
-
-    /* ========================================================
-       VISTA: FORMULARIO DE SOLICITUD MANUAL
-       ======================================================== */
-    public function nuevaSolicitud() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
-        }
-
-        $idProfesional = (int) ($_GET['id_prof'] ?? 0);
-        if ($idProfesional <= 0) {
-            header("Location: " . BASE_URL . "/cliente/especialistas");
-            exit;
-        }
-
-        $db = Database::getInstance()->getConnection();
-        
-        // Obtenemos los datos del profesional para la vista
-        $stmtP = $db->prepare("
-            SELECT p.*, u.nombre, u.apellido, c.nombre_categoria 
-            FROM profesionales p 
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            WHERE p.id_profesional = :id
-        ");
-        $stmtP->execute([':id' => $idProfesional]);
-        $profesional = $stmtP->fetch(PDO::FETCH_ASSOC);
-
-        if (!$profesional) {
-            header("Location: " . BASE_URL . "/cliente/especialistas?error=profesional_no_encontrado");
-            exit;
-        }
-
-        // Datos del cliente para rellenar dirección
-        $stmtC = $db->prepare("SELECT * FROM clientes WHERE id_usuario = :id");
-        $stmtC->execute([':id' => (int)$_SESSION['user_id']]);
-        $cliente = $stmtC->fetch(PDO::FETCH_ASSOC);
-
-        $this->view('cliente/solicitud_form', [
-            'titulo' => 'Solicitar Servicio Manual',
-            'profesional' => $profesional,
-            'cliente' => $cliente,
-            'error' => $_GET['error'] ?? null
-        ]);
     }
 }

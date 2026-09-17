@@ -124,8 +124,12 @@ body { background: var(--geo-bg) !important; color: var(--geo-text); font-family
                         <!-- FORMULARIO DE ENVÍO -->
                         <form id="assignForm" method="POST" action="<?= BASE_URL ?>/cliente/registrarPedido">
                             <input type="hidden" name="id_categoria" value="<?= $categoria['id_categoria'] ?>">
-                            <input type="hidden" name="tipo_asignacion" id="tipoAsignacion" value="AUTO_CASCADA">
-                            <input type="hidden" name="id_profesional" id="idProfesional" value="0">
+                            <?php 
+                                $idProf = $idProfSeleccionado ?? 0;
+                                $modoAsignacion = ($idProf > 0) ? 'MANUAL' : 'AUTO_CASCADA';
+                            ?>
+                            <input type="hidden" name="tipo_asignacion" id="tipoAsignacion" value="<?= $modoAsignacion ?>">
+                            <input type="hidden" name="id_profesional" id="idProfesional" value="<?= $idProf ?>">
 
                             <div class="form-group-custom">
                                 <label for="descripcion">Detalla el problema a resolver <span class="text-danger">*</span></label>
@@ -140,29 +144,37 @@ body { background: var(--geo-bg) !important; color: var(--geo-text); font-family
 
                             <!-- OPCIONES DE ASIGNACIÓN -->
                             <div class="assignment-section">
-                                <h5 class="fw-bold mb-3" style="color:var(--geo-dark);">¿Cómo deseas buscar a tu especialista?</h5>
-                                
-                                <!-- Opción 1: Automático (Botón limpio sin detalles técnicos) -->
-                                <button type="button" class="btn-auto-cascade" onclick="submitCascada()">
-                                    <div class="btn-auto-icon"><i class="fa-solid fa-satellite-dish"></i></div>
-                                    <div>
-                                        <h5 class="fw-bold mb-1 m-0 text-white">Enviar a profesionales (Recomendado)</h5>
-                                        <p class="m-0" style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">
-                                            El sistema enviará tu solicitud a la red de técnicos disponibles en tu zona para que el primero en aceptarla atienda tu caso.
-                                        </p>
-                                    </div>
-                                </button>
+                                <?php if ($idProf > 0): ?>
+                                    <!-- MODO ASIGNACIÓN DIRECTA (MANUAL DESDE CATÁLOGO) -->
+                                    <h5 class="fw-bold mb-3" style="color:var(--geo-dark);"><i class="fa-solid fa-user-check text-success"></i> Profesional Seleccionado</h5>
+                                    <p class="text-muted small">Tu solicitud será enviada directamente al especialista seleccionado.</p>
+                                    <button type="submit" class="btn-select-pro w-100 py-3 fs-5">
+                                        Confirmar y Solicitar Servicio
+                                    </button>
+                                <?php else: ?>
+                                    <h5 class="fw-bold mb-3" style="color:var(--geo-dark);">¿Cómo deseas buscar a tu especialista?</h5>
+                                    
+                                    <!-- Opción 1: Automático (Botón limpio sin detalles técnicos) -->
+                                    <button type="button" class="btn-auto-cascade" onclick="submitCascada()">
+                                        <div class="btn-auto-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+                                        <div>
+                                            <h5 class="fw-bold mb-1 m-0 text-white">Enviar a profesionales (Recomendado)</h5>
+                                            <p class="m-0" style="color: rgba(255,255,255,0.8); font-size: 0.85rem;">
+                                                El sistema enviará tu solicitud a la red de técnicos disponibles en tu zona para que el primero en aceptarla atienda tu caso.
+                                            </p>
+                                        </div>
+                                    </button>
 
-                                <div class="text-center fw-bold text-muted my-3">O SI PREFIERES...</div>
+                                    <div class="text-center fw-bold text-muted my-3">O SI PREFIERES...</div>
 
-                                <!-- Opción 2: Manual -->
-                                <button type="button" class="btn-manual-toggle" onclick="mostrarListaManual()">
-                                    <i class="fa-solid fa-list-check me-2"></i> Elegir manualmente a mi especialista
-                                </button>
+                                    <!-- Opción 2: Manual -->
+                                    <button type="button" class="btn-manual-toggle" onclick="mostrarListaManual()">
+                                        <i class="fa-solid fa-list-check me-2"></i> Elegir manualmente a mi especialista
+                                    </button>
 
-                                <!-- LISTA DE PROFESIONALES (Oculta por defecto) -->
-                                <div class="manual-list-container" id="manualList">
-                                    <h6 class="fw-bold mb-3 mt-4" style="color:var(--geo-dark);">Profesionales Activos en tu Zona</h6>
+                                    <!-- LISTA DE PROFESIONALES (Oculta por defecto) -->
+                                    <div class="manual-list-container" id="manualList">
+                                        <h6 class="fw-bold mb-3 mt-4" style="color:var(--geo-dark);">Profesionales Activos en tu Zona</h6>
                                     
                                     <?php if (!empty($profesionales)): ?>
                                         <?php foreach($profesionales as $p): ?>
@@ -203,6 +215,7 @@ body { background: var(--geo-bg) !important; color: var(--geo-text); font-family
                                         </div>
                                     <?php endif; ?>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </form>
                     </div>
@@ -277,10 +290,15 @@ function mostrarListaManual() {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
-// Envíos del Formulario (Garantizado que funcionan)
+// Envíos del Formulario (Garantizado que funcionan y evitan doble click)
 function submitCascada() {
     const form = document.getElementById('assignForm');
     if(form.reportValidity()) {
+        const btn = document.querySelector('.btn-auto-cascade');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+        }
         document.getElementById('tipoAsignacion').value = 'AUTO_CASCADA';
         form.submit();
     }
@@ -294,6 +312,20 @@ function submitManual(idProfesional) {
         form.submit();
     }
 }
+
+// Para el botón directo cuando viene del catálogo
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('assignForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const btnDirecto = document.querySelector('.btn-select-pro[type="submit"]');
+            if (btnDirecto) {
+                btnDirecto.disabled = true;
+                btnDirecto.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solicitando...';
+            }
+        });
+    }
+});
 
 // Lógica del Modal "Curiosear"
 function verPerfil(nombre, desc, tarifa, estrellas, idProf) {
