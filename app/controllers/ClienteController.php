@@ -373,4 +373,125 @@ class ClienteController extends Controller {
         echo json_encode($coords ?: ['latitud_actual' => null, 'longitud_actual' => null]);
         exit;
     }
+    /* ========================================================
+       BUSCADOR MANUAL DE ESPECIALISTAS (Catálogo)
+       ======================================================== */
+    public function especialistas() {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        
+        // Filtro opcional por categoría
+        $filtroCategoria = (int) ($_GET['categoria'] ?? 0);
+        $params = [];
+        
+        $sql = "
+            SELECT p.id_profesional, u.nombre, u.apellido, c.nombre_categoria,
+                   pl.nombre_plan, pl.posicionamiento_destacado,
+                   p.tarifa_base, p.macrodistrito_base, p.zona_especifica,
+                   COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas,
+                   COALESCE(vw.total_resenas, 0) AS total_resenas
+            FROM profesionales p
+            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
+            INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
+            LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
+            WHERE p.estado_validacion = 'APROBADO' 
+              AND p.estado_disponibilidad = 'DISPONIBLE'
+              AND p.tokens_disponibles > 0
+        ";
+
+        if ($filtroCategoria > 0) {
+            $sql .= " AND p.id_categoria = :id_categoria";
+            $params[':id_categoria'] = $filtroCategoria;
+        }
+
+        // ORDEN CRÍTICO DE NEGOCIO: Premium primero, mejores calificados después
+        $sql .= " ORDER BY pl.posicionamiento_destacado DESC, pl.id_plan DESC, promedio_estrellas DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $especialistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Obtenemos categorías para el select del filtro
+        $categorias = $db->query("SELECT id_categoria, nombre_categoria FROM categorias WHERE estado = 1 ORDER BY nombre_categoria ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('cliente/especialistas', [
+            'titulo' => 'GEO-PRO | Catálogo de Profesionales',
+            'especialistas' => $especialistas,
+            'categorias' => $categorias,
+            'categoriaActual' => $filtroCategoria
+        ]);
+    }
+
+    /* ========================================================
+       CONEXIÓN: ENVIAR AL CLIENTE A CREAR EL PEDIDO MANUAL
+       ======================================================== */
+    public function solicitarManual() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . BASE_URL . "/cliente/especialistas");
+            exit;
+        }
+
+        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
+
+        if ($idProfesional > 0) {
+            // Redirige al formulario de crear solicitud, pasándole el ID del técnico por la URL
+            // Asegúrate de que tu vista de crear solicitud lea este $_GET['id_prof']
+            header("Location: " . BASE_URL . "/cliente/nuevaSolicitud?id_prof=" . $idProfesional);
+            exit;
+        }
+
+        header("Location: " . BASE_URL . "/cliente/especialistas?error=id_invalido");
+        exit;
+    }
+
+    /* ========================================================
+       VISTA: FORMULARIO DE SOLICITUD MANUAL
+       ======================================================== */
+    public function nuevaSolicitud() {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: " . BASE_URL . "/auth/login");
+            exit;
+        }
+
+        $idProfesional = (int) ($_GET['id_prof'] ?? 0);
+        if ($idProfesional <= 0) {
+            header("Location: " . BASE_URL . "/cliente/especialistas");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        
+        // Obtenemos los datos del profesional para la vista
+        $stmtP = $db->prepare("
+            SELECT p.*, u.nombre, u.apellido, c.nombre_categoria 
+            FROM profesionales p 
+            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
+            WHERE p.id_profesional = :id
+        ");
+        $stmtP->execute([':id' => $idProfesional]);
+        $profesional = $stmtP->fetch(PDO::FETCH_ASSOC);
+
+        if (!$profesional) {
+            header("Location: " . BASE_URL . "/cliente/especialistas?error=profesional_no_encontrado");
+            exit;
+        }
+
+        // Datos del cliente para rellenar dirección
+        $stmtC = $db->prepare("SELECT * FROM clientes WHERE id_usuario = :id");
+        $stmtC->execute([':id' => (int)$_SESSION['user_id']]);
+        $cliente = $stmtC->fetch(PDO::FETCH_ASSOC);
+
+        $this->view('cliente/solicitud_form', [
+            'titulo' => 'Solicitar Servicio Manual',
+            'profesional' => $profesional,
+            'cliente' => $cliente,
+            'error' => $_GET['error'] ?? null
+        ]);
+    }
 }

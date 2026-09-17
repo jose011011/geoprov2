@@ -256,8 +256,8 @@ class ProfesionalController extends Controller {
             die("<h2 style='color:red;'>Error de Base de Datos al cambiar estado: " . $e->getMessage() . "</h2>");
         }
     }
-    /* ========================================================
-       8. REGISTRAR PAGO Y ENVIAR A VERIFICACIÓN
+ /* ========================================================
+       8. REGISTRAR PAGO Y ENVIAR A VERIFICACIÓN (Blindado Anti-Hacking)
        ======================================================== */
     public function registrarPago() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -293,12 +293,34 @@ class ProfesionalController extends Controller {
             exit;
         }
 
+        // =======================================================
+        // NUEVA LÓGICA DE SEGURIDAD: SUBIDA DEL COMPROBANTE
+        // =======================================================
+        $nombreComprobante = null;
+        
+        if (isset($_FILES['comprobante_foto']) && $_FILES['comprobante_foto']['size'] > 0) {
+            // Ruta destino. Asegúrate de que la carpeta "comprobantes" exista en "public/uploads/"
+            $carpetaDestino = $_SERVER['DOCUMENT_ROOT'] . '/GEO_PRO_V2/public/uploads/comprobantes';
+            
+            // Pasamos el archivo por el escáner de seguridad
+            $resultadoUpload = $this->subirArchivoSeguro($_FILES['comprobante_foto'], $carpetaDestino);
+            
+            if ($resultadoUpload['ok']) {
+                $nombreComprobante = $resultadoUpload['nombre_archivo'];
+            } else {
+                // Si el archivo es un virus, excede los 5MB o está alterado, rechazamos el pago
+                header("Location: " . BASE_URL . "/profesional/comprarTokens?error=" . urlencode($resultadoUpload['error']));
+                exit;
+            }
+        }
+        // =======================================================
+
         try {
-            // Insertamos el pago en estado PENDIENTE
+            // Insertamos el pago en estado PENDIENTE guardando el nombre seguro de la foto
             $stmt = $db->prepare("
                 INSERT INTO transacciones_suscripcion 
-                (id_profesional, id_plan, tipo_transaccion, monto, metodo_pago, codigo_comprobante, estado_pago) 
-                VALUES (:id_profesional, :id_plan, :tipo, :monto, :metodo, :codigo, 'PENDIENTE')
+                (id_profesional, id_plan, tipo_transaccion, monto, metodo_pago, codigo_comprobante, estado_pago, foto_comprobante) 
+                VALUES (:id_profesional, :id_plan, :tipo, :monto, :metodo, :codigo, 'PENDIENTE', :foto)
             ");
             
             $stmt->execute([
@@ -307,7 +329,8 @@ class ProfesionalController extends Controller {
                 ':tipo' => $tipoTransaccion,
                 ':monto' => $monto,
                 ':metodo' => $metodoPago,
-                ':codigo' => $codigoComprobante
+                ':codigo' => $codigoComprobante,
+                ':foto' => $nombreComprobante // Insertamos el nombre del archivo validado
             ]);
 
             $idTransaccion = $db->lastInsertId();
@@ -322,7 +345,6 @@ class ProfesionalController extends Controller {
             exit;
 
         } catch (PDOException $e) {
-            // Si el código de comprobante ya fue usado, la BD lanzará un error porque es UNIQUE
             header("Location: " . BASE_URL . "/profesional/comprarTokens?error=codigo_duplicado");
             exit;
         }
