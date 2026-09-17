@@ -204,10 +204,12 @@ class ProfesionalController extends Controller {
                 try {
                     $reclamado = $solicitudModel->reclamarTrabajo($idSolicitud, $idProfesional);
                     if (!$reclamado) {
-                        die("<h2 style='color:red;'>¡Lo sentimos! Otro profesional aceptó este trabajo antes que tú.</h2><br><a href='" . BASE_URL . "/profesional/solicitudes'>Volver a la bandeja</a>");
+                        header("Location: " . BASE_URL . "/profesional/solicitudes?error=" . urlencode("¡Lo sentimos! Otro profesional aceptó este trabajo antes que tú."));
+                        exit;
                     }
                 } catch (Exception $ex) {
-                    die("<h2 style='color:red;'>" . $ex->getMessage() . "</h2><br><a href='" . BASE_URL . "/profesional/solicitudes'>Volver a la bandeja</a>");
+                    header("Location: " . BASE_URL . "/profesional/solicitudes?error=" . urlencode($ex->getMessage()));
+                    exit;
                 }
                 
                 // Si lo reclamó con éxito, redirigir a ver los trabajos activos

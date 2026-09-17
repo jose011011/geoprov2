@@ -143,6 +143,21 @@
             <h2 class="page-title">Bandeja de Solicitudes</h2>
             <p class="page-subtitle">Revisa los problemas enviados por los clientes. Aceptar un trabajo descontará 1 Token de tu saldo.</p>
 
+            <?php if (isset($_GET['error'])): ?>
+                <div class="alert alert-danger fw-bold shadow-sm" style="border-radius:10px; border-left: 5px solid #ef4444;">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?= htmlspecialchars($_GET['error']) ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_GET['success'])): ?>
+                <div class="alert alert-success fw-bold shadow-sm" style="border-radius:10px; border-left: 5px solid #10b981;">
+                    <i class="fa-solid fa-check-circle me-2"></i> 
+                    <?php 
+                        if ($_GET['success'] == 'estado_actualizado') echo "El estado del trabajo ha sido actualizado correctamente.";
+                        else echo htmlspecialchars($_GET['success']); 
+                    ?>
+                </div>
+            <?php endif; ?>
+
             <!-- TABS DE FILTRO -->
             <div class="status-tabs">
                 <a href="?estado=" class="tab-btn <?= empty($filtroActual) || $filtroActual === 'TODAS' ? 'active' : '' ?>">Pendientes de Acción</a>
