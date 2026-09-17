@@ -14,6 +14,10 @@ class Router {
         
         // Método / Acción: segunda parte (ej: 'login' o 'index' por defecto)
         $methodName = $urlParts[1] ?? 'index';
+
+        if ($urlParts[0] === 'admin' && $methodName === 'crearCategoria') {
+            file_put_contents(__DIR__ . '/../public/debug_router.log', date('Y-m-d H:i:s') . " - HIT ROUTER - METHOD: {$_SERVER['REQUEST_METHOD']}\n", FILE_APPEND);
+        }
         
         // Parámetros adicionales
         $params = array_slice($urlParts, 2);

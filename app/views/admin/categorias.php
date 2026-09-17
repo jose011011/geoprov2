@@ -132,19 +132,20 @@
             <!-- FORMULARIO NUEVA CATEGORÍA -->
             <div class="form-card">
                 <h6><i class="fa-solid fa-plus-circle text-success me-2"></i>Crear Nueva Categoría</h6>
-                <form method="POST" action="<?= BASE_URL ?>/admin/crearCategoria" class="row g-3">
+                <div id="jsErrorAlert" class="alert alert-danger fw-bold" style="display:none;"></div>
+                <form id="formCrearCategoria" class="row g-3">
                     <div class="col-md-3">
-                        <input type="text" name="nombre_categoria" class="form-control-custom" placeholder="Nombre (ej. Jardinería)" required>
+                        <input type="text" id="cat_nombre" name="nombre_categoria" class="form-control-custom" placeholder="Nombre (ej. Jardinería)" required>
                     </div>
                     <div class="col-md-3">
-                        <select name="tipo_clasificacion" class="form-select-custom">
+                        <select id="cat_tipo" name="tipo_clasificacion" class="form-select-custom">
                             <option value="AMBOS" selected>Ambos (Técnico / Empírico)</option>
                             <option value="TECNICO">Solo Técnico Profesional</option>
                             <option value="EMPIRICO_OFICIO">Solo Oficio Empírico</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <select name="icono_fa" class="form-select-custom">
+                        <select id="cat_icono" name="icono_fa" class="form-select-custom">
                             <option value="fa-solid fa-wrench">Mecánica / Mantenimiento (Llave)</option>
                             <option value="fa-solid fa-hammer">Construcción / Carpintería (Martillo)</option>
                             <option value="fa-solid fa-plug">Electricidad (Enchufe)</option>
@@ -160,15 +161,20 @@
                             <option value="fa-solid fa-camera">Fotografía (Cámara)</option>
                             <option value="fa-solid fa-utensils">Gastronomía (Cubiertos)</option>
                             <option value="fa-solid fa-briefcase">Servicios Profesionales (Maletín)</option>
+                            <option value="fa-solid fa-car">Vehículos / Automotriz (Auto)</option>
+                            <option value="fa-solid fa-dog">Mascotas / Veterinaria (Perro)</option>
+                            <option value="fa-solid fa-shirt">Ropa / Sastrería (Camisa)</option>
+                            <option value="fa-solid fa-key">Cerrajería (Llave puerta)</option>
+                            <option value="fa-solid fa-music">Música / Eventos (Nota musical)</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <button type="submit" class="btn fw-bold w-100 h-100" style="background:#10b981; color:white; border-radius:10px;">
+                        <button type="button" id="btnGuardarCategoria" class="btn fw-bold w-100 h-100" style="background:#10b981; color:white; border-radius:10px;">
                             <i class="fa-solid fa-save me-1"></i> Agregar
                         </button>
                     </div>
                     <div class="col-12 mt-2">
-                        <input type="text" name="descripcion" class="form-control-custom" placeholder="Descripción breve del oficio (Opcional para guiar a la Inteligencia Artificial)">
+                        <input type="text" id="cat_desc" name="descripcion" class="form-control-custom" placeholder="Descripción breve del oficio (Opcional para guiar a la Inteligencia Artificial)">
                     </div>
                 </form>
             </div>
@@ -394,6 +400,47 @@ function abrirModal(idCategoria, accion) {
 
 function cerrarModal() { modalOverlay.classList.remove('active'); formularioActivo = null; }
 modalBtnConfirmar.addEventListener('click', function() { if (formularioActivo) formularioActivo.submit(); });
+
+// 4. Enviar categoría por AJAX
+const btnGuardarCategoria = document.getElementById('btnGuardarCategoria');
+if (btnGuardarCategoria) {
+    btnGuardarCategoria.addEventListener('click', async function() {
+        const nombre = document.getElementById('cat_nombre').value.trim();
+        if (!nombre) {
+            alert("Por favor escribe un nombre para la categoría.");
+            return;
+        }
+        
+        btnGuardarCategoria.disabled = true;
+        btnGuardarCategoria.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+        const alertBox = document.getElementById('jsErrorAlert');
+        alertBox.style.display = 'none';
+
+        const formData = new FormData(document.getElementById('formCrearCategoria'));
+        
+        try {
+            const response = await fetch("<?= BASE_URL ?>/admin/crearCategoria", {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else if (!response.ok) {
+                throw new Error("Error del servidor: " + response.statusText);
+            } else {
+                // Force reload if not redirected
+                window.location.href = "<?= BASE_URL ?>/admin/categorias?success=Categoria+creada";
+            }
+        } catch (error) {
+            console.error(error);
+            alertBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ' + error.message;
+            alertBox.style.display = 'block';
+            btnGuardarCategoria.disabled = false;
+            btnGuardarCategoria.innerHTML = '<i class="fa-solid fa-save me-1"></i> Agregar';
+        }
+    });
+}
 </script>
 
 <?php require_once "../app/views/layouts/footer.php"; ?>
