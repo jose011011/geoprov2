@@ -162,16 +162,29 @@ class Solicitud {
     /* ========================================================
        ASIGNACIÓN I.A. CASCADA - OBTENER TRABAJOS DISPONIBLES
        ======================================================== */
-    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf) {
+    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf, $idProfesional) {
         $db = Database::getInstance()->getConnection();
         
-        // CONFIGURACIÓN DE LA CASCADA (Retraso en Minutos)
-        $minutosRetraso = 7; // Por defecto (Gratuitos)
+        // 1. Validar que el profesional no tenga un trabajo activo. (Solo uno a la vez)
+        $stmtActivo = $db->prepare("
+            SELECT id_solicitud 
+            FROM solicitudes_servicio 
+            WHERE id_profesional = :id_prof 
+              AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO')
+            LIMIT 1
+        ");
+        $stmtActivo->execute([':id_prof' => $idProfesional]);
+        if ($stmtActivo->fetch()) {
+            return []; // Ya tiene un trabajo activo, no puede ver nuevas oportunidades.
+        }
+
+        // 2. CONFIGURACIÓN DE LA CASCADA (Retraso en Minutos)
+        $minutosRetraso = 10; // Por defecto (Gratuitos) esperan 10 min
         
         if ($idPlanProfesional == 3) {
-            $minutosRetraso = 0; // PREMIUM: Lo ve al instante (0 min)
+            $minutosRetraso = 0; // ORO PREMIUM: Lo ve al instante (0 min)
         } elseif ($idPlanProfesional == 2) {
-            $minutosRetraso = 3; // BÁSICO: Lo ve con 3 minutos de retraso
+            $minutosRetraso = 5; // PLATA BÁSICO: Lo ve con 5 minutos de retraso
         }
         
         // Consulta SQL con la barrera de tiempo I.A.
@@ -201,8 +214,21 @@ class Solicitud {
        ======================================================== */
     public function reclamarTrabajo($idSolicitud, $idProfesional) {
         $db = Database::getInstance()->getConnection();
+
+        // 1. Candado de seguridad: Verificar que NO tenga ya un trabajo activo
+        $stmtActivo = $db->prepare("
+            SELECT id_solicitud 
+            FROM solicitudes_servicio 
+            WHERE id_profesional = :id_prof 
+              AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO')
+            LIMIT 1
+        ");
+        $stmtActivo->execute([':id_prof' => $idProfesional]);
+        if ($stmtActivo->fetch()) {
+            throw new Exception("Ya tienes un trabajo activo. Finalízalo antes de aceptar otro.");
+        }
         
-        // El UPDATE con 'IS NULL' es un candado. Si alguien más le ganó, esto fallará.
+        // 2. El UPDATE con 'IS NULL' es un candado de concurrencia. Si alguien más le ganó, esto fallará.
         $stmt = $db->prepare("
             UPDATE solicitudes_servicio 
             SET id_profesional = :id_prof, 

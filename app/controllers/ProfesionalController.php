@@ -69,9 +69,8 @@ class ProfesionalController extends Controller {
             $this->jsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
         }
     }
-
-    /* ========================================================
-       3. SOLICITUDES ENTRANTES (Bandeja de Entrada)
+/* ========================================================
+       3. SOLICITUDES ENTRANTES (Bandeja de Entrada - CASCADA)
        ======================================================== */
     public function solicitudes() {
         require_once "../app/models/Solicitud.php";
@@ -84,8 +83,19 @@ class ProfesionalController extends Controller {
         }
 
         $filtro = $_GET['estado'] ?? null;
-        // Si no hay filtro, mostrar solicitudes PENDIENTES o ACEPTADAS que requieren atención
-        $solicitudes = $solicitudModel->listarPorProfesional((int) $perfil['id_profesional'], $filtro);
+        
+        if ($filtro === 'PENDIENTE') {
+            // LÓGICA DE CASCADA: Buscar trabajos nuevos disponibles en su zona según su plan
+            // (Premium los ve al instante, Básicos esperan 5 min, Gratis 10 min)
+            $solicitudes = $solicitudModel->obtenerOportunidadesCascada(
+                (int) $perfil['id_plan'], 
+                $perfil['macrodistrito_base'] ?? 'CENTRO',
+                (int) $perfil['id_profesional']
+            );
+        } else {
+            // Si está viendo "Trabajos Activos" (ACEPTADA, EN_CAMINO, EN_PROCESO)
+            $solicitudes = $solicitudModel->listarPorProfesional((int) $perfil['id_profesional'], $filtro);
+        }
 
         $this->view('profesional/solicitudes', [
             'titulo'       => 'GEO-PRO | Mis Solicitudes de Trabajo',
@@ -162,8 +172,8 @@ class ProfesionalController extends Controller {
         ]);
     }
 
-   /* ========================================================
-       7. CAMBIO DE ESTADO (Protegido contra botones fantasma)
+  /* ========================================================
+       7. CAMBIO DE ESTADO Y RECLAMAR TRABAJO (Escudo anti-choques)
        ======================================================== */
     public function cambiarEstadoSolicitud() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -175,24 +185,39 @@ class ProfesionalController extends Controller {
         $nuevoEstado = $_POST['estado'] ?? '';
         $tiempoLlegada = (int) ($_POST['tiempo_estimado'] ?? 0);
         $precioAcordado = (float) ($_POST['precio_acordado'] ?? 0);
+        
+        // Obtener el ID del profesional actual
+        $perfil = $this->profesionalModel->buscarPorUsuario((int) $_SESSION['user_id']);
+        $idProfesional = (int) $perfil['id_profesional'];
 
         try {
             $db = Database::getInstance()->getConnection();
             
-            // Lógica de Tokens: Descontar 1 token si acepta el trabajo
+            // ==========================================
+            // CASO ESPECIAL 1: RECLAMAR TRABAJO (CASCADA)
+            // ==========================================
             if ($nuevoEstado === 'ACEPTADA') {
-                $stmtToken = $db->prepare("SELECT tokens_disponibles FROM profesionales WHERE id_usuario = :id_user FOR UPDATE");
-                $stmtToken->execute([':id_user' => $_SESSION['user_id']]);
-                $prof = $stmtToken->fetch();
-
-                if (!$prof || $prof['tokens_disponibles'] <= 0) {
-                    die("<h2 style='color:red;'>Error: No tienes tokens suficientes. Recarga tu membresía.</h2>");
+                require_once "../app/models/Solicitud.php";
+                $solicitudModel = new Solicitud();
+                
+                // Intentamos reclamar el trabajo antes que otro profesional
+                try {
+                    $reclamado = $solicitudModel->reclamarTrabajo($idSolicitud, $idProfesional);
+                    if (!$reclamado) {
+                        die("<h2 style='color:red;'>¡Lo sentimos! Otro profesional aceptó este trabajo antes que tú.</h2><br><a href='" . BASE_URL . "/profesional/solicitudes'>Volver a la bandeja</a>");
+                    }
+                } catch (Exception $ex) {
+                    die("<h2 style='color:red;'>" . $ex->getMessage() . "</h2><br><a href='" . BASE_URL . "/profesional/solicitudes'>Volver a la bandeja</a>");
                 }
-
-                $stmtUpdateToken = $db->prepare("UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_usuario = :id_user");
-                $stmtUpdateToken->execute([':id_user' => $_SESSION['user_id']]);
+                
+                // Si lo reclamó con éxito, redirigir a ver los trabajos activos
+                header("Location: " . BASE_URL . "/profesional/solicitudes?estado=ACEPTADA");
+                exit;
             }
             
+            // ==========================================
+            // CASO NORMAL: ACTUALIZAR TRABAJO EXISTENTE
+            // ==========================================
             $sql = "UPDATE solicitudes_servicio SET estado_servicio = :estado";
             
             if ($nuevoEstado === 'EN_CAMINO' && $tiempoLlegada > 0) {
@@ -203,11 +228,13 @@ class ProfesionalController extends Controller {
                 $sql .= ", fecha_inicio_atencion = CURRENT_TIMESTAMP";
             }
             
-            $sql .= " WHERE id_solicitud = :id_sol";
+            $sql .= " WHERE id_solicitud = :id_sol AND id_profesional = :id_prof"; // Solo puede cambiarlo el dueño
             $stmt = $db->prepare($sql);
             
             $stmt->bindParam(':estado', $nuevoEstado);
             $stmt->bindParam(':id_sol', $idSolicitud);
+            $stmt->bindParam(':id_prof', $idProfesional);
+            
             if ($nuevoEstado === 'EN_CAMINO' && $tiempoLlegada > 0) $stmt->bindParam(':tiempo', $tiempoLlegada);
             if ($nuevoEstado === 'FINALIZADA' && $precioAcordado > 0) $stmt->bindParam(':precio', $precioAcordado);
             
@@ -223,8 +250,7 @@ class ProfesionalController extends Controller {
             }
 
         } catch (Exception $e) {
-            // SI FALLA, MUESTRA EL ERROR EN VEZ DE NO HACER NADA
-            die("<h2 style='color:red;'>Error de Base de Datos al cambiar estado: " . $e->getMessage() . "</h2><br>¿Ejecutaste el código SQL en phpMyAdmin?");
+            die("<h2 style='color:red;'>Error de Base de Datos al cambiar estado: " . $e->getMessage() . "</h2>");
         }
     }
     /* ========================================================
