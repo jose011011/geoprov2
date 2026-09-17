@@ -144,7 +144,23 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <input type="text" name="icono_fa" class="form-control-custom" placeholder="fa-solid fa-leaf (FontAwesome)">
+                        <select name="icono_fa" class="form-select-custom">
+                            <option value="fa-solid fa-wrench">Mecánica / Mantenimiento (Llave)</option>
+                            <option value="fa-solid fa-hammer">Construcción / Carpintería (Martillo)</option>
+                            <option value="fa-solid fa-plug">Electricidad (Enchufe)</option>
+                            <option value="fa-solid fa-droplet">Plomería / Limpieza (Gota)</option>
+                            <option value="fa-solid fa-leaf">Jardinería (Hoja)</option>
+                            <option value="fa-solid fa-broom">Limpieza (Escoba)</option>
+                            <option value="fa-solid fa-paintbrush">Pintura (Pincel)</option>
+                            <option value="fa-solid fa-truck-fast">Mudanza / Transporte (Camión)</option>
+                            <option value="fa-solid fa-laptop-medical">Soporte Técnico (Laptop)</option>
+                            <option value="fa-solid fa-scissors">Peluquería / Estética (Tijeras)</option>
+                            <option value="fa-solid fa-stethoscope">Salud / Médico (Estetoscopio)</option>
+                            <option value="fa-solid fa-graduation-cap">Educación / Tutorías (Gorro)</option>
+                            <option value="fa-solid fa-camera">Fotografía (Cámara)</option>
+                            <option value="fa-solid fa-utensils">Gastronomía (Cubiertos)</option>
+                            <option value="fa-solid fa-briefcase">Servicios Profesionales (Maletín)</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <button type="submit" class="btn fw-bold w-100 h-100" style="background:#10b981; color:white; border-radius:10px;">
@@ -153,7 +169,6 @@
                     </div>
                     <div class="col-12 mt-2">
                         <input type="text" name="descripcion" class="form-control-custom" placeholder="Descripción breve del oficio (Opcional para guiar a la Inteligencia Artificial)">
-                        <small class="text-muted mt-2 d-inline-block"><i class="fa-solid fa-circle-info"></i> Busca iconos gratuitos en <a href="https://fontawesome.com/search?o=r&m=free" target="_blank" class="text-primary text-decoration-none">FontAwesome</a>.</small>
                     </div>
                 </form>
             </div>

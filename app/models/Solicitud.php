@@ -156,4 +156,75 @@ class Solicitud {
         }
     
     }
+
+
+
+    /* ========================================================
+       ASIGNACIÓN I.A. CASCADA - OBTENER TRABAJOS DISPONIBLES
+       ======================================================== */
+    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf) {
+        $db = Database::getInstance()->getConnection();
+        
+        // CONFIGURACIÓN DE LA CASCADA (Retraso en Minutos)
+        $minutosRetraso = 7; // Por defecto (Gratuitos)
+        
+        if ($idPlanProfesional == 3) {
+            $minutosRetraso = 0; // PREMIUM: Lo ve al instante (0 min)
+        } elseif ($idPlanProfesional == 2) {
+            $minutosRetraso = 3; // BÁSICO: Lo ve con 3 minutos de retraso
+        }
+        
+        // Consulta SQL con la barrera de tiempo I.A.
+        $sql = "
+            SELECT s.*, c.zona AS zona_cliente, u.nombre AS cliente_nombre, u.apellido AS cliente_apellido
+            FROM solicitudes_servicio s
+            INNER JOIN clientes c ON s.id_cliente = c.id_cliente
+            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
+            WHERE s.estado_servicio = 'PENDIENTE' 
+              AND s.id_profesional IS NULL 
+              AND s.macrodistrito = :macrodistrito
+              -- MAGIA DE LA CASCADA: Solo muestra solicitudes cuya edad supere el retraso de tu plan
+              AND s.fecha_solicitud <= DATE_SUB(NOW(), INTERVAL :retraso MINUTE)
+            ORDER BY s.fecha_solicitud DESC
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':macrodistrito', $macrodistritoProf, PDO::PARAM_STR);
+        $stmt->bindValue(':retraso', $minutosRetraso, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /* ========================================================
+       ACEPTAR TRABAJO (El primero que llega se lo queda)
+       ======================================================== */
+    public function reclamarTrabajo($idSolicitud, $idProfesional) {
+        $db = Database::getInstance()->getConnection();
+        
+        // El UPDATE con 'IS NULL' es un candado. Si alguien más le ganó, esto fallará.
+        $stmt = $db->prepare("
+            UPDATE solicitudes_servicio 
+            SET id_profesional = :id_prof, 
+                estado_servicio = 'ACEPTADA' 
+            WHERE id_solicitud = :id_sol 
+              AND estado_servicio = 'PENDIENTE' 
+              AND id_profesional IS NULL
+        ");
+        
+        $stmt->execute([
+            ':id_prof' => $idProfesional,
+            ':id_sol' => $idSolicitud
+        ]);
+        
+        // Si rowCount > 0, significa que él ganó la carrera
+        if ($stmt->rowCount() > 0) {
+            // Aquí le descuentas 1 TOKEN al profesional por ganar el trabajo
+            $stmtToken = $db->prepare("UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_profesional = :id_prof");
+            $stmtToken->execute([':id_prof' => $idProfesional]);
+            return true;
+        }
+        
+        return false; // Alguien más se lo llevó
+    }
 }
