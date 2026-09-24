@@ -244,11 +244,22 @@ document.addEventListener("DOMContentLoaded", function () {
         form.addEventListener('submit', function (e) {
             let formValido = true;
             
-            // Disparar input a todos para que validen
-            this.querySelectorAll('input[required], select[required], textarea[required]').forEach(input => {
+            // Disparar input a todos para que validen (Excepto archivos)
+            this.querySelectorAll('input[required]:not([type="file"]), select[required], textarea[required]').forEach(input => {
+                // Si el input no tiene ninguna regla atada, al menos checamos que no esté vacío
+                if(input.value.trim() === '') {
+                    setValidation(input, false, 'Este campo es obligatorio.');
+                }
+                
                 input.dispatchEvent(new Event(input.tagName === 'SELECT' ? 'change' : 'input'));
+                
                 if (!input.classList.contains('is-valid') && input.id !== 'apellido_materno') {
-                    formValido = false;
+                    // Si después de disparar el evento aún no es válido, pero sí tiene valor y no hay error custom, lo damos por válido (Fallback para los que no tienen listener .val-)
+                    if (input.value.trim() !== '' && !input.classList.contains('is-invalid')) {
+                        setValidation(input, true);
+                    } else {
+                        formValido = false;
+                    }
                 }
             });
 

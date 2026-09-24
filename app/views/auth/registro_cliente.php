@@ -144,7 +144,7 @@ if (!defined('BASE_URL')) {
                     <div class="row g-3">
                         <div class="col-md-6 position-relative">
                             <label class="form-label small fw-bold text-muted">Macrodistrito / Zona Principal</label>
-                            <select name="zona" id="zona" class="form-select" required>
+                            <select name="zona" id="zona" class="form-select val-select" required>
                                 <option value="">-- Seleccione su zona --</option>
                                 <option value="Sopocachi" <?= (($old['zona'] ?? '') === 'Sopocachi') ? 'selected' : '' ?>>Sopocachi</option>
                                 <option value="Miraflores" <?= (($old['zona'] ?? '') === 'Miraflores') ? 'selected' : '' ?>>Miraflores</option>
@@ -161,7 +161,7 @@ if (!defined('BASE_URL')) {
                             <label class="form-label small fw-bold text-muted">Dirección / Referencia</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fa-solid fa-house-chimney"></i></span>
-                                <input type="text" name="direccion" id="direccion" class="form-control" placeholder="Av. 6 de Agosto Nro 123" value="<?= old($old, 'direccion') ?>" required minlength="10">
+                                <input type="text" name="direccion" id="direccion" class="form-control val-direccion" placeholder="Av. 6 de Agosto Nro 123" value="<?= old($old, 'direccion') ?>" required minlength="10">
                             </div>
                             <div class="invalid-feedback mt-1"></div>
                         </div>
