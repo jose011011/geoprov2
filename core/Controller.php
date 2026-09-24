@@ -72,4 +72,45 @@ class Controller {
             return ['ok' => false, 'error' => 'Error de permisos de escritura en el servidor.'];
         }
     }
+/* ========================================================
+       MIDDLEWARE API: VALIDAR TOKEN DE FLUTTER
+       ======================================================== */
+    protected function validarTokenApi() {
+        // 1. Extraer las cabeceras de la petición enviada por Flutter
+        $headers = apache_request_headers();
+        $authHeader = $headers['Authorization'] ?? '';
+        
+        // Limpiamos la palabra "Bearer " para quedarnos solo con el código
+        $token = str_replace('Bearer ', '', $authHeader);
+
+        if (empty($token)) {
+            http_response_code(401); // 401: No autorizado
+            echo json_encode(['ok' => false, 'error' => 'No autorizado. Token faltante en la petición.']);
+            exit;
+        }
+
+        // 2. Buscar al dueño del token en la base de datos
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("
+            SELECT id_usuario, role_id, nombre, correo, celular 
+            FROM usuarios 
+            WHERE api_token = :token AND estado = 'ACTIVO'
+        ");
+        $stmt->execute([':token' => $token]);
+        $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // 3. Si el token es inventado, viejo, o el usuario está bloqueado, lo pateamos
+        if (!$usuario) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'error' => 'Sesión inválida o expirada. Vuelve a iniciar sesión.']);
+            exit;
+        }
+
+        // 4. Si todo está bien, devolvemos los datos del usuario al controlador
+        return $usuario;
+    }
+
+
+
+
 }

@@ -7,7 +7,7 @@ class AuthController extends Controller {
     public function __construct() {
         $this->usuarioModel = new Usuario();
         
-        // Cabeceras obligatorias para API REST (CORS y JSON)
+        // Cabeceras obligatorias para API REST (CORS)
         header("Access-Control-Allow-Origin: *");
         header("Content-Type: application/json; charset=UTF-8");
         header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
@@ -40,32 +40,41 @@ class AuthController extends Controller {
             exit;
         }
 
-        // Reutilizamos la lógica de autenticación de tu modelo actual
-        $usuario = $this->usuarioModel->autenticar($credencial, $password);
+        try {
+            $usuario = $this->usuarioModel->autenticar($credencial, $password);
 
-        if ($usuario) {
-            if ($usuario['estado'] !== 'ACTIVO') {
-                echo json_encode(['ok' => false, 'error' => 'Esta cuenta está bloqueada o inactiva']);
-                exit;
+            if ($usuario) {
+                if ($usuario['estado'] !== 'ACTIVO') {
+                    echo json_encode(['ok' => false, 'error' => 'Esta cuenta está bloqueada o inactiva']);
+                    exit;
+                }
+
+                // 1. Generar un Token Único Seguro (Bearer Token)
+                $token = bin2hex(random_bytes(32)); 
+
+                // 2. Guardar el Token en la Base de Datos
+                $db = Database::getInstance()->getConnection();
+                $stmt = $db->prepare("UPDATE usuarios SET api_token = :token WHERE id_usuario = :id");
+                $stmt->execute([':token' => $token, ':id' => $usuario['id_usuario']]);
+
+                // 3. Responder a Flutter con los datos
+                echo json_encode([
+                    'ok' => true,
+                    'token' => $token, // Flutter debe guardar esto en SharedPreferences o SecureStorage
+                    'usuario' => [
+                        'id_usuario' => (int) $usuario['id_usuario'],
+                        'nombre' => $usuario['nombre'],
+                        'apellido' => $usuario['apellido'],
+                        'correo' => $usuario['correo'],
+                        'celular' => $usuario['celular'],
+                        'rol' => (int) $usuario['role_id']
+                    ]
+                ]);
+            } else {
+                echo json_encode(['ok' => false, 'error' => 'Correo o contraseña incorrectos']);
             }
-
-            // Generar un token simple para identificar a la app en futuras peticiones
-            $token = bin2hex(random_bytes(16)); 
-
-            echo json_encode([
-                'ok' => true,
-                'token' => $token,
-                'usuario' => [
-                    'id_usuario' => (int) $usuario['id_usuario'],
-                    'nombre' => $usuario['nombre'],
-                    'apellido' => $usuario['apellido'],
-                    'correo' => $usuario['correo'],
-                    'celular' => $usuario['celular'],
-                    'rol' => (int) $usuario['role_id']
-                ]
-            ]);
-        } else {
-            echo json_encode(['ok' => false, 'error' => 'Correo o contraseña incorrectos']);
+        } catch (Exception $e) {
+            echo json_encode(['ok' => false, 'error' => 'Error de conexión: ' . $e->getMessage()]);
         }
         exit;
     }
@@ -80,6 +89,9 @@ class AuthController extends Controller {
         }
 
         $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data) {
+            $data = $_POST;
+        }
         
         $nombre = trim($data['nombre'] ?? '');
         $apellido = trim($data['apellido'] ?? '');
@@ -94,59 +106,83 @@ class AuthController extends Controller {
         }
 
         try {
-            $db = Database::getInstance()->getConnection();
-            
-            // 1. Validar que no exista el correo o celular
-            $stmtCheck = $db->prepare("SELECT id_usuario FROM usuarios WHERE correo = :correo OR celular = :celular");
-            $stmtCheck->execute([':correo' => $correo, ':celular' => $celular]);
-            
-            if ($stmtCheck->fetch()) {
-                echo json_encode(['ok' => false, 'error' => 'El correo o celular ya están registrados']);
-                exit;
-            }
-
-            $db->beginTransaction();
-
-            // 2. Crear el Usuario
-            $hash = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $db->prepare("
-                INSERT INTO usuarios (role_id, nombre, apellido, correo, celular, password, estado) 
-                VALUES (:rol, :nombre, :apellido, :correo, :celular, :pass, 'ACTIVO')
-            ");
-            $stmt->execute([
-                ':rol' => $rol,
-                ':nombre' => $nombre,
-                ':apellido' => $apellido,
-                ':correo' => $correo,
-                ':celular' => $celular,
-                ':pass' => $hash
-            ]);
-
-            $idNuevoUsuario = $db->lastInsertId();
-
-            // 3. Crear el Perfil Automático según el Rol
             if ($rol === 3) {
-                // Profesional: Cae directo al Plan 1 (Gratis)
-                $stmtProf = $db->prepare("INSERT INTO profesionales (id_usuario, id_categoria, id_plan) VALUES (:id, 1, 1)");
-                $stmtProf->execute([':id' => $idNuevoUsuario]);
-            } else if ($rol === 4) {
+                // El profesional requiere validación compleja, subida de documentos y tablas anexas
+                $data['apellido_paterno'] = $apellido; 
+                $this->usuarioModel->registrarPrestador($data, $_FILES);
+                
+                echo json_encode([
+                    'ok' => true, 
+                    'mensaje' => 'Cuenta de profesional creada exitosamente. Espera la validación del administrador.'
+                ]);
+            } else {
                 // Cliente
+                $db = Database::getInstance()->getConnection();
+                
+                $stmtCheck = $db->prepare("SELECT id_usuario FROM usuarios WHERE correo = :correo OR celular = :celular");
+                $stmtCheck->execute([':correo' => $correo, ':celular' => $celular]);
+                
+                if ($stmtCheck->fetch()) {
+                    echo json_encode(['ok' => false, 'error' => 'El correo o celular ya están registrados']);
+                    exit;
+                }
+
+                $db->beginTransaction();
+
+                $hash = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $db->prepare("
+                    INSERT INTO usuarios (role_id, nombre, apellido, correo, celular, password, estado) 
+                    VALUES (4, :nombre, :apellido, :correo, :celular, :pass, 'ACTIVO')
+                ");
+                $stmt->execute([
+                    ':nombre' => $nombre,
+                    ':apellido' => $apellido,
+                    ':correo' => $correo,
+                    ':celular' => $celular,
+                    ':pass' => $hash
+                ]);
+
+                $idNuevoUsuario = $db->lastInsertId();
+
                 $stmtCli = $db->prepare("INSERT INTO clientes (id_usuario) VALUES (:id)");
                 $stmtCli->execute([':id' => $idNuevoUsuario]);
+
+                $db->commit();
+                
+                echo json_encode([
+                    'ok' => true, 
+                    'mensaje' => 'Cuenta creada exitosamente. Ya puedes iniciar sesión.'
+                ]);
             }
 
-            $db->commit();
-            
-            echo json_encode([
-                'ok' => true, 
-                'mensaje' => 'Cuenta creada exitosamente', 
-                'id_usuario' => $idNuevoUsuario
-            ]);
-
         } catch (Exception $e) {
-            $db->rollBack();
-            echo json_encode(['ok' => false, 'error' => 'Error interno en el servidor: ' . $e->getMessage()]);
+            echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
         }
+        exit;
+    }
+
+    /* ========================================================
+       ENDPOINT: POST /api/auth/logout
+       ======================================================== */
+    public function logout() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false]);
+            exit;
+        }
+
+        // Leer el token de los headers de Flutter (Authorization: Bearer <token>)
+        $headers = apache_request_headers();
+        $authHeader = $headers['Authorization'] ?? '';
+        $token = str_replace('Bearer ', '', $authHeader);
+
+        if (!empty($token)) {
+            $db = Database::getInstance()->getConnection();
+            // Borramos el token de la base de datos para invalidar la sesión
+            $stmt = $db->prepare("UPDATE usuarios SET api_token = NULL WHERE api_token = :token");
+            $stmt->execute([':token' => $token]);
+        }
+
+        echo json_encode(['ok' => true, 'mensaje' => 'Sesión cerrada correctamente']);
         exit;
     }
 }
