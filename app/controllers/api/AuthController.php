@@ -41,9 +41,13 @@ class AuthController extends Controller {
         }
 
         try {
-            $usuario = $this->usuarioModel->autenticar($credencial, $password);
+            // Buscar usuario por correo o celular
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("SELECT * FROM usuarios WHERE correo = :credencial OR celular = :credencial LIMIT 1");
+            $stmt->execute([':credencial' => $credencial]);
+            $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($usuario) {
+            if ($usuario && password_verify($password, $usuario['password'])) {
                 if ($usuario['estado'] !== 'ACTIVO') {
                     echo json_encode(['ok' => false, 'error' => 'Esta cuenta está bloqueada o inactiva']);
                     exit;
@@ -67,7 +71,7 @@ class AuthController extends Controller {
                         'apellido' => $usuario['apellido'],
                         'correo' => $usuario['correo'],
                         'celular' => $usuario['celular'],
-                        'rol' => (int) $usuario['role_id']
+                        'rol' => (int) $usuario['id_rol']
                     ]
                 ]);
             } else {
@@ -98,8 +102,8 @@ class AuthController extends Controller {
         $correo = trim($data['correo'] ?? '');
         $celular = trim($data['celular'] ?? '');
         $password = trim($data['password'] ?? '');
-        $rol = (int) ($data['role_id'] ?? 4); // 4 = Cliente por defecto, 3 = Profesional
-
+        $rol = (int) ($data['id_rol'] ?? $data['role_id'] ?? 4); // 4 = Cliente por defecto, 3 = Profesional
+        
         if (empty($nombre) || empty($correo) || empty($password)) {
             echo json_encode(['ok' => false, 'error' => 'Faltan campos obligatorios']);
             exit;
@@ -115,6 +119,7 @@ class AuthController extends Controller {
                     'ok' => true, 
                     'mensaje' => 'Cuenta de profesional creada exitosamente. Espera la validación del administrador.'
                 ]);
+                exit;
             } else {
                 // Cliente
                 $db = Database::getInstance()->getConnection();
@@ -131,7 +136,7 @@ class AuthController extends Controller {
 
                 $hash = password_hash($password, PASSWORD_BCRYPT);
                 $stmt = $db->prepare("
-                    INSERT INTO usuarios (role_id, nombre, apellido, correo, celular, password, estado) 
+                    INSERT INTO usuarios (id_rol, nombre, apellido, correo, celular, password, estado) 
                     VALUES (4, :nombre, :apellido, :correo, :celular, :pass, 'ACTIVO')
                 ");
                 $stmt->execute([

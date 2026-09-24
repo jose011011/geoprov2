@@ -92,7 +92,7 @@ class Controller {
         // 2. Buscar al dueño del token en la base de datos
         $db = Database::getInstance()->getConnection();
         $stmt = $db->prepare("
-            SELECT id_usuario, role_id, nombre, correo, celular 
+            SELECT id_usuario, id_rol, nombre, correo, celular 
             FROM usuarios 
             WHERE api_token = :token AND estado = 'ACTIVO'
         ");

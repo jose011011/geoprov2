@@ -109,20 +109,6 @@ class ApiProfesionalController extends Controller {
         }
 
         try {
-            // Validación: Un profesional no puede tener múltiples trabajos activos simultáneamente
-            $db = Database::getInstance()->getConnection();
-            $stmtActivos = $db->prepare("
-                SELECT COUNT(*) FROM solicitudes_servicio 
-                WHERE id_profesional = :id_prof 
-                AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO')
-            ");
-            $stmtActivos->execute([':id_prof' => $perfil['id_profesional']]);
-            
-            if ($stmtActivos->fetchColumn() > 0) {
-                echo json_encode(['ok' => false, 'error' => 'Ya tienes un trabajo activo. Finalízalo antes de aceptar otro.']);
-                exit;
-            }
-
             // El modelo hace el UPDATE con "WHERE id_profesional IS NULL"
             $reclamado = $this->solicitudModel->reclamarTrabajo($idSolicitud, (int) $perfil['id_profesional']);
             
