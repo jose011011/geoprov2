@@ -84,7 +84,6 @@ class Admin {
 
     /** Antes de aprobar al profesional, exige que no queden documentos PENDIENTES ni RECHAZADOS */
     public function aprobarProfesional(int $idProfesional): void {
-        // Aprobar automáticamente todos los documentos pendientes asociados
         $stmtDocs = $this->db->prepare("
             UPDATE documentos_profesional 
             SET estado_revision = 'APROBADO', fecha_revision = CURRENT_TIMESTAMP 
@@ -105,7 +104,6 @@ class Admin {
             WHERE id_profesional = :id
         ");
         $stmtDocs->execute([':id' => $idProfesional]);
-
         $stmt = $this->db->prepare("
             UPDATE profesionales SET estado_validacion = 'RECHAZADO' WHERE id_profesional = :id
         ");
