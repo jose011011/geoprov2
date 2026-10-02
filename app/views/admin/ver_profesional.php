@@ -132,6 +132,12 @@
                 <i class="fa-solid fa-arrow-left me-2"></i>Volver al Listado
             </a>
 
+            <?php if (isset($_GET['error'])): ?>
+                <div class="alert alert-danger fw-bold shadow-sm rounded-3">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i> <?= htmlspecialchars($_GET['error']) ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (!isset($perfil) || empty($perfil)): ?>
                 <div class="alert alert-warning text-center p-5 rounded-4 shadow-sm border-0 bg-white">
                     <i class="fa-solid fa-user-slash fa-3x mb-3 text-warning"></i>
