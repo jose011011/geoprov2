@@ -305,9 +305,36 @@ function cerrarModal() {
     formularioActivo = null;
 }
 
-modalBtnConfirmar.addEventListener('click', function() {
+modalBtnConfirmar.addEventListener('click', async function() {
     if (formularioActivo) {
-        formularioActivo.submit();
+        modalBtnConfirmar.disabled = true;
+        modalBtnConfirmar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+        
+        try {
+            const formData = new FormData(formularioActivo);
+            const response = await fetch(formularioActivo.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                // El backend redirige o devuelve 200, recargamos para ver los cambios
+                window.location.reload();
+            } else {
+                const resData = await response.json();
+                alert('No se pudo completar: ' + (resData.error || 'Error desconocido'));
+                modalBtnConfirmar.disabled = false;
+                modalBtnConfirmar.textContent = 'Reintentar';
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            alert('Error de conexión al enviar la solicitud.');
+            modalBtnConfirmar.disabled = false;
+            modalBtnConfirmar.textContent = 'Reintentar';
+        }
     }
 });
 </script>

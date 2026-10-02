@@ -73,8 +73,17 @@ class AdminController extends Controller {
                 $this->adminModel->rechazarProfesional($idProfesional);
                 $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'RECHAZAR_PROFESIONAL', 'profesionales', $idProfesional);
             }
+
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                echo json_encode(['ok' => true]);
+                exit;
+            }
         } catch (Exception $e) {
-            // Manejo de excepción o logs
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                http_response_code(400);
+                echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+                exit;
+            }
         }
 
         header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
