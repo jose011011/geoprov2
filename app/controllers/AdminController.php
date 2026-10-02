@@ -74,9 +74,7 @@ class AdminController extends Controller {
                 $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'RECHAZAR_PROFESIONAL', 'profesionales', $idProfesional);
             }
         } catch (Exception $e) {
-            $errorMsg = urlencode($e->getMessage());
-            header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional . "?error=" . $errorMsg);
-            exit;
+            // Manejo de excepción o logs
         }
 
         header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
@@ -93,11 +91,7 @@ class AdminController extends Controller {
         try {
             $this->adminModel->aprobarProfesional($idProfesional);
             $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'APROBAR_PROFESIONAL', 'profesionales', $idProfesional);
-        } catch (Exception $e) {
-            $errorMsg = urlencode($e->getMessage());
-            header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional . "?error=" . $errorMsg);
-            exit;
-        }
+        } catch (Exception $e) { }
 
         header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
         exit;

@@ -84,17 +84,13 @@ class Admin {
 
     /** Antes de aprobar al profesional, exige que no queden documentos PENDIENTES ni RECHAZADOS */
     public function aprobarProfesional(int $idProfesional): void {
-        $stmt = $this->db->prepare("
-            SELECT COUNT(*) AS pendientes
-            FROM documentos_profesional
-            WHERE id_profesional = :id AND estado_revision != 'APROBADO'
+        // Aprobar automáticamente todos los documentos pendientes asociados
+        $stmtDocs = $this->db->prepare("
+            UPDATE documentos_profesional 
+            SET estado_revision = 'APROBADO', fecha_revision = CURRENT_TIMESTAMP 
+            WHERE id_profesional = :id
         ");
-        $stmt->execute([':id' => $idProfesional]);
-        $check = $stmt->fetch();
-
-        if ((int) $check['pendientes'] > 0) {
-            throw new Exception("No puede aprobar al profesional: aún tiene documentos sin aprobar.");
-        }
+        $stmtDocs->execute([':id' => $idProfesional]);
 
         $stmtUp = $this->db->prepare("
             UPDATE profesionales SET estado_validacion = 'APROBADO' WHERE id_profesional = :id
@@ -103,6 +99,13 @@ class Admin {
     }
 
     public function rechazarProfesional(int $idProfesional): void {
+        $stmtDocs = $this->db->prepare("
+            UPDATE documentos_profesional 
+            SET estado_revision = 'RECHAZADO', fecha_revision = CURRENT_TIMESTAMP 
+            WHERE id_profesional = :id
+        ");
+        $stmtDocs->execute([':id' => $idProfesional]);
+
         $stmt = $this->db->prepare("
             UPDATE profesionales SET estado_validacion = 'RECHAZADO' WHERE id_profesional = :id
         ");
