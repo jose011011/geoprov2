@@ -5,27 +5,25 @@ class Database {
 
     private function __construct() {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-            $options = [
+            $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+            $this->conn = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
-                PDO::ATTR_TIMEOUT            => 10, // Espera máximo 10 segundos para conectar
-            ];
-            $this->conn = new PDO($dsn, DB_USER, DB_PASS, $options);
-            // Timeout de 10s para locks de InnoDB (evita congelamiento en INSERTs)
-            $this->conn->exec("SET SESSION innodb_lock_wait_timeout = 10");
-            $this->conn->exec("SET SESSION wait_timeout = 30");
+                PDO::ATTR_TIMEOUT            => 10,
+            ]);
+            $this->conn->exec('SET SESSION innodb_lock_wait_timeout = 10');
         } catch (PDOException $e) {
-            die("Error crítico de conexión a la base de datos: " . $e->getMessage());
+            error_log('[FixGeo] Conexión a BD fallida: ' . $e->getMessage());
+            http_response_code(503);
+            die(APP_DEBUG
+                ? 'Error de conexión a la base de datos: ' . $e->getMessage()
+                : 'El servicio no está disponible por el momento. Inténtalo en unos minutos.');
         }
     }
 
     public static function getInstance(): Database {
-        if (self::$instance === null) {
-            self::$instance = new Database();
-        }
-        return self::$instance;
+        return self::$instance ??= new Database();
     }
 
     public function getConnection(): PDO {

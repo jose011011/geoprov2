@@ -1,0 +1,12 @@
+# FixGeo - raíz del proyecto
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Carpetas internas: nunca accesibles desde el navegador
+    RewriteRule ^(app|core|cron)(/|$) - [F,L]
+</IfModule>
+
+<FilesMatch "\.(sql|md|log|bak|env|ini|dart|lock|gitattributes|gitignore)$">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,24 @@
+/* FixGeo - páginas de acceso (login y registro). Requiere fixgeo-theme.css. */
+.fx-auth { min-height: 100vh; display: flex; flex-direction: column; background: var(--fx-white); position: relative; overflow-x: hidden; }
+.fx-auth::before, .fx-auth::after { content: ""; position: fixed; border-radius: 50%; z-index: 0; pointer-events: none; }
+.fx-auth::before { width: 560px; height: 560px; right: -180px; top: -200px; background: var(--fx-gradient); opacity: .14; filter: blur(40px); }
+.fx-auth::after  { width: 460px; height: 460px; left: -200px; bottom: -220px; background: var(--fx-blue); opacity: .08; filter: blur(50px); }
+
+.fx-auth-top  { position: relative; z-index: 1; padding: 1rem 0; }
+.fx-auth-main { position: relative; z-index: 1; flex: 1; padding: 1rem 0 3rem; }
+
+.fx-auth-card { background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 24px; box-shadow: var(--fx-shadow); padding: 2rem; margin-inline: auto; }
+.fx-auth-card--sm { max-width: 460px; }
+.fx-auth-card--lg { max-width: 820px; }
+
+.fx-auth .form-control, .fx-auth .form-select { border-radius: 12px; border-color: var(--fx-line); }
+.fx-auth .input-group > .form-control { border-radius: 0 12px 12px 0; }
+.fx-auth .input-group > .btn { border-radius: 0 12px 12px 0; }
+.fx-auth .input-group > .form-control:not(:last-child) { border-radius: 0; }
+.fx-auth .input-group > .input-group-text:first-child { border-radius: 12px 0 0 12px; }
+.input-group-text { background: var(--fx-bg); border-color: var(--fx-line); color: var(--fx-muted); }
+.input-group-text.is-valid-addon { border-color: #198754; color: #198754; background: #f0fdf4; }
+
+.fx-section-title { font-weight: 700; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--fx-blue); margin: 1.5rem 0 .75rem; }
+
+@media (max-width: 575.98px) { .fx-auth-card { padding: 1.25rem; border-radius: 18px; } }

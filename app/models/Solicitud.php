@@ -1,248 +1,444 @@
 <?php
-class Solicitud {
+class Solicitud
+{
     private PDO $db;
 
-    public function __construct() {
+    private const MACRODISTRITOS = ['ZONA_SUR', 'SOPOCACHI', 'CENTRO', 'MIRAFLORES', 'SAN_PEDRO', 'COTAHUMA', 'PERIFERICA', 'EL_ALTO'];
+    private const ACTIVOS        = ['ACEPTADA', 'EN_CAMINO', 'EN_PROCESO'];
+    private const ESTADOS        = ['PENDIENTE', 'ACEPTADA', 'EN_CAMINO', 'EN_PROCESO', 'FINALIZADA', 'CANCELADA'];
+
+    /** Qué cambios de estado están permitidos (ACEPTADA→EN_PROCESO se mantiene por compatibilidad con tu botón "Llegué"). */
+    private const TRANSICIONES = [
+        'PENDIENTE'  => ['ACEPTADA', 'CANCELADA'],
+        'ACEPTADA'   => ['EN_CAMINO', 'EN_PROCESO', 'CANCELADA'],
+        'EN_CAMINO'  => ['EN_PROCESO', 'CANCELADA'],
+        'EN_PROCESO' => ['FINALIZADA', 'CANCELADA'],
+    ];
+
+    public function __construct()
+    {
         $this->db = Database::getInstance()->getConnection();
     }
 
-    public function crear(int $idCliente, int $idProfesional, array $data): int {
-        $codigo = 'GEO-' . strtoupper(bin2hex(random_bytes(4)));
-
-        $stmt = $this->db->prepare("
-            INSERT INTO solicitudes_servicio (
-                codigo_seguimiento, id_cliente, id_profesional, descripcion_problema,
-                direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino
-            ) VALUES (
-                :codigo, :id_cliente, :id_profesional, :descripcion,
-                :direccion, :macrodistrito, :zona, :lat, :lng
-            )
-        ");
-        $stmt->execute([
-            ':codigo'        => $codigo,
-            ':id_cliente'    => $idCliente,
-            ':id_profesional'=> $idProfesional,
-            ':descripcion'   => trim($data['descripcion_problema']),
-            ':direccion'     => trim($data['direccion_servicio']),
-            ':macrodistrito' => $data['macrodistrito'],
-            ':zona'          => trim($data['zona']),
-            ':lat'           => (float) $data['latitud_destino'],
-            ':lng'           => (float) $data['longitud_destino']
-        ]);
-
-        return (int) $this->db->lastInsertId();
+    public static function macrodistritoValido(?string $valor): string
+    {
+        return in_array($valor, self::MACRODISTRITOS, true) ? $valor : 'CENTRO';
     }
 
-    public function obtenerPorId(int $idSolicitud): ?array {
-        $stmt = $this->db->prepare("
-            SELECT s.*, 
+    /** Retraso de la cascada según plan: 3 = Premium (0 min), 2 = Básico (3 min), resto = Gratuito (7 min). */
+    private static function retrasoPorPlan(int $idPlan): int
+    {
+        return match ($idPlan) { 3 => 0, 2 => 3, default => 7 };
+    }
+
+    /** Convierte los errores de los triggers (SQLSTATE 45000) en mensajes amigables. */
+    private function traducirError(PDOException $e): Throwable
+    {
+        if (($e->errorInfo[0] ?? '') === '45000') {
+            $msg = preg_replace('/^Operación denegada:\s*/u', '', (string) ($e->errorInfo[2] ?? 'Operación no permitida.'));
+            return new DomainException($msg);
+        }
+        return $e;
+    }
+
+    /* ===================== CREAR ===================== */
+    public function crear(int $idCliente, ?int $idProfesional, array $data, ?int $idCategoria = null): int
+    {
+        $descripcion = trim((string) ($data['descripcion_problema'] ?? ''));
+        $direccion   = trim((string) ($data['direccion_servicio'] ?? ''));
+        $zona        = trim((string) ($data['zona'] ?? ''));
+        $lat         = (float) ($data['latitud_destino'] ?? 0);
+        $lng         = (float) ($data['longitud_destino'] ?? 0);
+
+        if (mb_strlen($descripcion) < 10 || mb_strlen($descripcion) > 1000) {
+            throw new DomainException('Describe el problema con entre 10 y 1000 caracteres.');
+        }
+        if (mb_strlen($direccion) < 5 || mb_strlen($direccion) > 255) {
+            throw new DomainException('Ingresa una dirección válida.');
+        }
+        if ($zona === '' || mb_strlen($zona) > 100) {
+            throw new DomainException('Indica la zona del servicio.');
+        }
+        if (abs($lat) > 90 || abs($lng) > 180 || ($lat == 0 && $lng == 0)) {
+            throw new DomainException('La ubicación del servicio no es válida.');
+        }
+
+        if ($idProfesional !== null) {
+            $stmt = $this->db->prepare('
+                SELECT p.id_categoria, (p.id_usuario = c.id_usuario) AS es_propio
+                  FROM profesionales p
+                 INNER JOIN clientes c ON c.id_cliente = :cli
+                 WHERE p.id_profesional = :prof LIMIT 1');
+            $stmt->execute([':cli' => $idCliente, ':prof' => $idProfesional]);
+            $fila = $stmt->fetch();
+            if (!$fila) {
+                throw new DomainException('El profesional seleccionado no existe.');
+            }
+            if ((int) $fila['es_propio'] === 1) {
+                throw new DomainException('No puedes solicitarte un servicio a ti mismo.');
+            }
+            $idCategoria ??= (int) $fila['id_categoria'];
+        } else {
+            $stmt = $this->db->prepare('SELECT 1 FROM categorias WHERE id_categoria = :id AND estado = 1');
+            $stmt->execute([':id' => (int) $idCategoria]);
+            if (!$stmt->fetchColumn()) {
+                throw new DomainException('Selecciona una categoría válida.');
+            }
+        }
+
+        try {
+            $stmt = $this->db->prepare('
+                INSERT INTO solicitudes_servicio (
+                    codigo_seguimiento, id_cliente, id_categoria, id_profesional, descripcion_problema,
+                    direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino
+                ) VALUES (
+                    :codigo, :cliente, :categoria, :profesional, :descripcion,
+                    :direccion, :macro, :zona, :lat, :lng
+                )');
+            $stmt->execute([
+                ':codigo'      => 'FIX-' . strtoupper(bin2hex(random_bytes(4))),
+                ':cliente'     => $idCliente,
+                ':categoria'   => $idCategoria,
+                ':profesional' => $idProfesional,
+                ':descripcion' => $descripcion,
+                ':direccion'   => $direccion,
+                ':macro'       => self::macrodistritoValido($data['macrodistrito'] ?? null),
+                ':zona'        => $zona,
+                ':lat'         => $lat,
+                ':lng'         => $lng,
+            ]);
+            return (int) $this->db->lastInsertId();
+        } catch (PDOException $e) {
+            throw $this->traducirError($e);
+        }
+    }
+
+    /* ===================== CONSULTAS ===================== */
+    public function obtenerPorId(int $idSolicitud): ?array
+    {
+        $stmt = $this->db->prepare('
+            SELECT s.*, cat.nombre_categoria,
                    uc.nombre AS cliente_nombre, uc.apellido AS cliente_apellido, uc.celular AS cliente_celular,
-                   up.nombre AS prof_nombre, up.apellido AS prof_apellido, up.celular AS prof_celular
-            FROM solicitudes_servicio s
-            INNER JOIN clientes cl ON s.id_cliente = cl.id_cliente
-            INNER JOIN usuarios uc ON cl.id_usuario = uc.id_usuario
-            INNER JOIN profesionales p ON s.id_profesional = p.id_profesional
-            INNER JOIN usuarios up ON p.id_usuario = up.id_usuario
-            WHERE s.id_solicitud = :id
-            LIMIT 1
-        ");
+                   cl.id_usuario AS cliente_id_usuario,
+                   up.nombre AS prof_nombre, up.apellido AS prof_apellido, up.celular AS prof_celular,
+                   p.id_usuario AS prof_id_usuario
+              FROM solicitudes_servicio s
+             INNER JOIN clientes cl ON cl.id_cliente = s.id_cliente
+             INNER JOIN usuarios uc ON uc.id_usuario = cl.id_usuario
+              LEFT JOIN profesionales p ON p.id_profesional = s.id_profesional
+              LEFT JOIN usuarios up ON up.id_usuario = p.id_usuario
+              LEFT JOIN categorias cat ON cat.id_categoria = COALESCE(s.id_categoria, p.id_categoria)
+             WHERE s.id_solicitud = :id
+             LIMIT 1');
         $stmt->execute([':id' => $idSolicitud]);
-        $res = $stmt->fetch();
-        return $res ?: null;
+        return $stmt->fetch() ?: null;
     }
 
-    public function listarPorCliente(int $idCliente): array {
-        $stmt = $this->db->prepare("
+    /** Solo devuelve la solicitud si el usuario es el cliente o el profesional de esa solicitud. */
+    public function obtenerParaUsuario(int $idSolicitud, int $idUsuario): ?array
+    {
+        $sol = $this->obtenerPorId($idSolicitud);
+        if (!$sol) {
+            return null;
+        }
+        $esCliente     = (int) $sol['cliente_id_usuario'] === $idUsuario;
+        $esProfesional = $sol['prof_id_usuario'] !== null && (int) $sol['prof_id_usuario'] === $idUsuario;
+        return ($esCliente || $esProfesional) ? $sol : null;
+    }
+
+    public function listarPorCliente(int $idCliente): array
+    {
+        $stmt = $this->db->prepare('
             SELECT s.id_solicitud, s.codigo_seguimiento, s.descripcion_problema, s.estado_servicio, s.fecha_solicitud,
                    u.nombre AS prof_nombre, u.apellido AS prof_apellido, c.nombre_categoria
-            FROM solicitudes_servicio s
-            INNER JOIN profesionales p ON s.id_profesional = p.id_profesional
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            WHERE s.id_cliente = :id_cliente
-            ORDER BY s.fecha_solicitud DESC
-        ");
-        $stmt->execute([':id_cliente' => $idCliente]);
+              FROM solicitudes_servicio s
+              LEFT JOIN profesionales p ON p.id_profesional = s.id_profesional
+              LEFT JOIN usuarios u ON u.id_usuario = p.id_usuario
+              LEFT JOIN categorias c ON c.id_categoria = COALESCE(s.id_categoria, p.id_categoria)
+             WHERE s.id_cliente = :id
+             ORDER BY s.fecha_solicitud DESC');
+        $stmt->execute([':id' => $idCliente]);
         return $stmt->fetchAll();
     }
 
-   public function listarPorProfesional($idProfesional, $estado = null) {
-        $db = Database::getInstance()->getConnection();
-        
-        // Hacemos JOIN con clientes y usuarios para traer el nombre real
-        $sql = "
-            SELECT s.*, 
-                   u.nombre AS cliente_nombre, 
-                   u.apellido AS cliente_apellido
-            FROM solicitudes_servicio s
-            INNER JOIN clientes c ON s.id_cliente = c.id_cliente
-            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-            WHERE s.id_profesional = :id_profesional
-        ";
-        
-        $params = [':id_profesional' => $idProfesional];
+    public function listarPorProfesional($idProfesional, $estado = null): array
+    {
+        $sql = '
+            SELECT s.*, u.nombre AS cliente_nombre, u.apellido AS cliente_apellido
+              FROM solicitudes_servicio s
+             INNER JOIN clientes c ON c.id_cliente = s.id_cliente
+             INNER JOIN usuarios u ON u.id_usuario = c.id_usuario
+             WHERE s.id_profesional = :prof';
+        $params = [':prof' => (int) $idProfesional];
 
-        if ($estado && $estado !== 'TODAS') {
-            $sql .= " AND s.estado_servicio = :estado";
+        if ($estado && in_array($estado, self::ESTADOS, true)) {
+            $sql .= ' AND s.estado_servicio = :estado';
             $params[':estado'] = $estado;
         }
-
-        $sql .= " ORDER BY s.fecha_solicitud DESC";
-        
-        $stmt = $db->prepare($sql);
+        $stmt = $this->db->prepare($sql . ' ORDER BY s.fecha_solicitud DESC');
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll();
     }
 
-    // SPRINT 1: LÓGICA DE TRANSACCIONES Y TOKENS (ACID)
-    public function cambiarEstado(int $idSolicitud, string $nuevoEstado, int $idProfesionalSolicitante, ?int $tiempoEstimado = null, ?float $precioAcordado = null): void {
-        $validos = ['ACEPTADA', 'EN_CAMINO', 'EN_PROCESO', 'FINALIZADA', 'CANCELADA'];
-        if (!in_array($nuevoEstado, $validos, true)) {
-            throw new Exception("Estado de servicio inválido.");
+    public function tieneTrabajoActivo(int $idProfesional): bool
+    {
+        $in = "'" . implode("','", self::ACTIVOS) . "'";
+        $stmt = $this->db->prepare("SELECT 1 FROM solicitudes_servicio WHERE id_profesional = :id AND estado_servicio IN ($in) LIMIT 1");
+        $stmt->execute([':id' => $idProfesional]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /* ===================== CASCADA ===================== */
+
+        /** Radio (km) alrededor del servicio dentro del cual un técnico de la categoría también recibe la solicitud. */
+    private const RADIO_CASCADA_KM = 10;
+
+    /** Espera del plan (tabla planes_suscripcion) y ubicación del técnico. Si el plan no existe, se asume la espera más larga. */
+    private function datosCascada(int $idPlan, ?int $idProfesional): array
+    {
+        $s = $this->db->prepare('SELECT retraso_cascada_min FROM planes_suscripcion WHERE id_plan = :id');
+        $s->execute([':id' => $idPlan]);
+        $retraso = $s->fetchColumn();
+
+        $lat = $lng = null;
+        if ($idProfesional) {
+            $s = $this->db->prepare('SELECT latitud_actual, longitud_actual FROM profesionales WHERE id_profesional = :id');
+            $s->execute([':id' => $idProfesional]);
+            $f = $s->fetch();
+            if ($f && $f['latitud_actual'] !== null && $f['longitud_actual'] !== null) {
+                $lat = (float) $f['latitud_actual'];
+                $lng = (float) $f['longitud_actual'];
+            }
+        }
+        return ['retraso' => $retraso === false ? 10 : (int) $retraso, 'lat' => $lat, 'lng' => $lng];
+    }
+        /** Zona: mismo macrodistrito O a menos de 10 km. Sin GPS del técnico, solo macrodistrito. */
+    private function sqlZona(bool $conGps): string
+    {
+        if (!$conGps) {
+            return 's.macrodistrito = :macro';
+        }
+        return 's.macrodistrito = :macro OR (6371 * ACOS(LEAST(1,
+                    COS(RADIANS(s.latitud_destino)) * COS(RADIANS(:lat1)) * COS(RADIANS(:lng1) - RADIANS(s.longitud_destino))
+                    + SIN(RADIANS(s.latitud_destino)) * SIN(RADIANS(:lat2))))) <= ' . self::RADIO_CASCADA_KM;
+    }
+
+    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf, $idCategoriaProf, $idProfesional = null): array
+    {
+        if ($idProfesional && $this->tieneTrabajoActivo((int) $idProfesional)) {
+            return []; // con un trabajo activo no ve más solicitudes
+        }
+
+        $d     = $this->datosCascada((int) $idPlanProfesional, $idProfesional ? (int) $idProfesional : null);
+        $conGps = $d['lat'] !== null;
+
+        $sql = "SELECT s.*, c.zona AS zona_cliente, u.nombre AS cliente_nombre, u.apellido AS cliente_apellido
+                  FROM solicitudes_servicio s
+                 INNER JOIN clientes c ON c.id_cliente = s.id_cliente
+                 INNER JOIN usuarios u ON u.id_usuario = c.id_usuario
+                 WHERE s.estado_servicio = 'PENDIENTE' AND s.id_profesional IS NULL
+                   AND s.id_categoria = :cat
+                   AND s.fecha_solicitud <= DATE_SUB(NOW(), INTERVAL :retraso MINUTE)
+                   AND (" . $this->sqlZona($conGps) . ')';
+        if ($idProfesional) {
+            $sql .= ' AND c.id_usuario <> (SELECT id_usuario FROM profesionales WHERE id_profesional = :self)';
+        }
+        $sql .= ' ORDER BY s.fecha_solicitud DESC';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':cat', (int) $idCategoriaProf, PDO::PARAM_INT);
+        $stmt->bindValue(':retraso', $d['retraso'], PDO::PARAM_INT);
+        $stmt->bindValue(':macro', (string) $macrodistritoProf, PDO::PARAM_STR);
+        if ($conGps) {
+            $stmt->bindValue(':lat1', $d['lat']);
+            $stmt->bindValue(':lng1', $d['lng']);
+            $stmt->bindValue(':lat2', $d['lat']);
+        }
+        if ($idProfesional) {
+            $stmt->bindValue(':self', (int) $idProfesional, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /* ===================== ACEPTAR (el primero que llega se la queda) ===================== */
+    public function reclamarTrabajo($idSolicitud, $idProfesional): bool
+    {
+        $idSolicitud   = (int) $idSolicitud;
+        $idProfesional = (int) $idProfesional;
+
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare('
+                SELECT id_usuario, id_plan, id_categoria, macrodistrito_base, tokens_disponibles, estado_validacion
+                  FROM profesionales WHERE id_profesional = :id FOR UPDATE');
+            $stmt->execute([':id' => $idProfesional]);
+            $prof = $stmt->fetch();
+
+            if (!$prof || $prof['estado_validacion'] !== 'APROBADO') {
+                throw new DomainException('Tu cuenta aún no está validada para aceptar trabajos.');
+            }
+            if ((int) $prof['tokens_disponibles'] <= 0) {
+                throw new DomainException('No tienes tokens suficientes. Por favor, recarga tu membresía.');
+            }
+            if ($this->tieneTrabajoActivo($idProfesional)) {
+                throw new DomainException('Ya tienes un trabajo activo. Finalízalo antes de aceptar otro.');
+            }
+
+            $stmt = $this->db->prepare('
+                SELECT c.id_usuario FROM solicitudes_servicio s
+                 INNER JOIN clientes c ON c.id_cliente = s.id_cliente WHERE s.id_solicitud = :id');
+            $stmt->execute([':id' => $idSolicitud]);
+            $duenio = $stmt->fetchColumn();
+            if ($duenio !== false && (int) $duenio === (int) $prof['id_usuario']) {
+                throw new DomainException('No puedes aceptar tu propia solicitud.');
+            }
+
+            // Misma regla que la lista y el aviso: la que le asignaron a él, o una abierta de su categoría,
+            // en su zona (macrodistrito o 10 km) y que ya le toque ver según su plan
+            $d     = $this->datosCascada((int) $prof['id_plan'], $idProfesional);
+            $conGps = $d['lat'] !== null;
+
+            $stmt = $this->db->prepare("
+                UPDATE solicitudes_servicio s
+                   SET s.id_profesional = :prof, s.estado_servicio = 'ACEPTADA'
+                 WHERE s.id_solicitud = :sol AND s.estado_servicio = 'PENDIENTE'
+                   AND ( s.id_profesional = :prof2
+                         OR ( s.id_profesional IS NULL AND s.id_categoria = :cat
+                              AND s.fecha_solicitud <= DATE_SUB(NOW(), INTERVAL :retraso MINUTE)
+                              AND (" . $this->sqlZona($conGps) . ') ) )');
+            $stmt->bindValue(':prof', $idProfesional, PDO::PARAM_INT);
+            $stmt->bindValue(':sol', $idSolicitud, PDO::PARAM_INT);
+            $stmt->bindValue(':prof2', $idProfesional, PDO::PARAM_INT);
+            $stmt->bindValue(':cat', (int) $prof['id_categoria'], PDO::PARAM_INT);
+            $stmt->bindValue(':retraso', $d['retraso'], PDO::PARAM_INT);
+            $stmt->bindValue(':macro', (string) $prof['macrodistrito_base'], PDO::PARAM_STR);
+            if ($conGps) {
+                $stmt->bindValue(':lat1', $d['lat']);
+                $stmt->bindValue(':lng1', $d['lng']);
+                $stmt->bindValue(':lat2', $d['lat']);
+            }
+            $stmt->execute();
+
+            if ($stmt->rowCount() === 0) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $this->descontarToken($idProfesional);
+            $this->db->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $this->traducirError($e);
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /* ===================== CAMBIAR ESTADO ===================== */
+    public function cambiarEstado(int $idSolicitud, string $nuevoEstado, int $idProfesional, ?int $tiempoEstimado = null, ?float $precioAcordado = null): void
+    {
+        if (!in_array($nuevoEstado, array_slice(self::ESTADOS, 1), true)) {
+            throw new DomainException('Estado de servicio inválido.');
+        }
+        if ($nuevoEstado === 'FINALIZADA' && ($precioAcordado === null || $precioAcordado <= 0 || $precioAcordado > 99999)) {
+            throw new DomainException('Ingresa el precio final acordado (mayor a 0).');
         }
 
         try {
             $this->db->beginTransaction();
 
-            $stmt = $this->db->prepare("SELECT id_profesional, estado_servicio FROM solicitudes_servicio WHERE id_solicitud = :id LIMIT 1 FOR UPDATE");
+            $stmt = $this->db->prepare('SELECT id_profesional, estado_servicio FROM solicitudes_servicio WHERE id_solicitud = :id LIMIT 1 FOR UPDATE');
             $stmt->execute([':id' => $idSolicitud]);
             $sol = $stmt->fetch();
 
-            if (!$sol || (int) $sol['id_profesional'] !== $idProfesionalSolicitante) {
-                throw new Exception("No tiene permiso para modificar esta solicitud.");
+            if (!$sol || (int) $sol['id_profesional'] !== $idProfesional) {
+                throw new DomainException('No tienes permiso para modificar esta solicitud.');
             }
 
-            if ($nuevoEstado === 'ACEPTADA' && $sol['estado_servicio'] === 'PENDIENTE') {
-                $stmtToken = $this->db->prepare("SELECT tokens_disponibles FROM profesionales WHERE id_profesional = :id_prof FOR UPDATE");
-                $stmtToken->execute([':id_prof' => $idProfesionalSolicitante]);
-                $prof = $stmtToken->fetch();
+            $actual = $sol['estado_servicio'];
+            if (!in_array($nuevoEstado, self::TRANSICIONES[$actual] ?? [], true)) {
+                throw new DomainException("No se puede pasar de {$actual} a {$nuevoEstado}.");
+            }
 
-                if (!$prof || $prof['tokens_disponibles'] <= 0) {
-                    throw new Exception("No tienes tokens suficientes. Por favor, recarga tu membresía.");
+            if ($actual === 'PENDIENTE' && $nuevoEstado === 'ACEPTADA') {
+                if ($this->tieneTrabajoActivo($idProfesional)) {
+                    throw new DomainException('Ya tienes un trabajo activo. Finalízalo antes de aceptar otro.');
                 }
-                $stmtUpdateToken = $this->db->prepare("UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_profesional = :id_prof");
-                $stmtUpdateToken->execute([':id_prof' => $idProfesionalSolicitante]);
+                $this->descontarToken($idProfesional);
             }
 
-            // AQUÍ INTEGRAMOS LOS NUEVOS CAMPOS DE LA BASE DE DATOS
-            $campoExtra = '';
+            $sets   = ['estado_servicio = :estado'];
             $params = [':estado' => $nuevoEstado, ':id' => $idSolicitud];
 
-            if ($nuevoEstado === 'ACEPTADA' && $tiempoEstimado !== null) {
-                $campoExtra .= ", tiempo_estimado_llegada_min = :tiempo";
+            if (in_array($nuevoEstado, ['ACEPTADA', 'EN_CAMINO'], true) && $tiempoEstimado !== null && $tiempoEstimado > 0 && $tiempoEstimado <= 600) {
+                $sets[] = 'tiempo_estimado_llegada_min = :tiempo';
                 $params[':tiempo'] = $tiempoEstimado;
             }
             if ($nuevoEstado === 'EN_PROCESO') {
-                $campoExtra .= ", fecha_inicio_atencion = NOW()";
+                $sets[] = 'fecha_inicio_atencion = NOW()';
             }
             if ($nuevoEstado === 'FINALIZADA') {
-                $campoExtra .= ", fecha_finalizacion = NOW()";
-                if ($precioAcordado !== null) {
-                    $campoExtra .= ", precio_acordado = :precio";
-                    $params[':precio'] = $precioAcordado;
-                }
+                $sets[] = 'fecha_finalizacion = NOW()';
+                $sets[] = 'precio_acordado = :precio';
+                $params[':precio'] = $precioAcordado;
+            }
+                        if ($nuevoEstado === 'CANCELADA') {
+                $sets[] = 'fecha_finalizacion = NOW()';
+                $sets[] = 'motivo_cancelacion = :motivo';
+                $params[':motivo'] = ($actual === 'PENDIENTE') ? 'Rechazada por el profesional' : 'Cancelada por el profesional';
             }
 
-            $stmtUpdateSol = $this->db->prepare("
-                UPDATE solicitudes_servicio SET estado_servicio = :estado {$campoExtra}
-                WHERE id_solicitud = :id
-            ");
-            $stmtUpdateSol->execute($params);
+            $this->db->prepare('UPDATE solicitudes_servicio SET ' . implode(', ', $sets) . ' WHERE id_solicitud = :id')->execute($params);
             $this->db->commit();
-            
-        } catch (Exception $e) {
-            $this->db->rollBack();
+        } catch (PDOException $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $this->traducirError($e);
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
             throw $e;
         }
-    
     }
 
-
-
-    /* ========================================================
-       ASIGNACIÓN I.A. CASCADA - OBTENER TRABAJOS DISPONIBLES
-       ======================================================== */
-    public function obtenerOportunidadesCascada($idPlanProfesional, $macrodistritoProf, $idCategoriaProf, $idProfesional = null) {
-        $db = Database::getInstance()->getConnection();
-        
-        // CANDADO: Evitar que vea trabajos si ya tiene uno activo (Si se pasó el ID del profesional)
-        if ($idProfesional) {
-            $stmtActivo = $db->prepare("SELECT id_solicitud FROM solicitudes_servicio WHERE id_profesional = :id_prof AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO') LIMIT 1");
-            $stmtActivo->execute([':id_prof' => $idProfesional]);
-            if ($stmtActivo->fetch()) return []; // Bandeja vacía
+    /** Debe llamarse dentro de una transacción (bloquea la fila del profesional). */
+    private function descontarToken(int $idProfesional): void
+    {
+        $stmt = $this->db->prepare('SELECT tokens_disponibles FROM profesionales WHERE id_profesional = :id FOR UPDATE');
+        $stmt->execute([':id' => $idProfesional]);
+        $tokens = $stmt->fetchColumn();
+        if ($tokens === false || (int) $tokens <= 0) {
+            throw new DomainException('No tienes tokens suficientes. Por favor, recarga tu membresía.');
         }
-
-        $minutosRetraso = 7; // Por defecto (Gratuitos)
-        if ($idPlanProfesional == 3) {
-            $minutosRetraso = 0; // PREMIUM: Lo ve al instante
-        } elseif ($idPlanProfesional == 2) {
-            $minutosRetraso = 3; // BÁSICO: 3 minutos de retraso
-        }
-        
-        $sql = "
-            SELECT s.*, c.zona AS zona_cliente, u.nombre AS cliente_nombre, u.apellido AS cliente_apellido
-            FROM solicitudes_servicio s
-            INNER JOIN clientes c ON s.id_cliente = c.id_cliente
-            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-            WHERE s.estado_servicio = 'PENDIENTE' 
-              AND s.id_profesional IS NULL 
-              AND s.id_categoria = :id_categoria
-              AND s.macrodistrito = :macrodistrito
-              AND s.fecha_solicitud <= DATE_SUB(NOW(), INTERVAL :retraso MINUTE)
-            ORDER BY s.fecha_solicitud DESC
-        ";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':macrodistrito', $macrodistritoProf, PDO::PARAM_STR);
-        $stmt->bindValue(':id_categoria', $idCategoriaProf, PDO::PARAM_INT);
-        $stmt->bindValue(':retraso', $minutosRetraso, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->db->prepare('UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_profesional = :id')
+                 ->execute([':id' => $idProfesional]);
     }
 
-    /* ========================================================
-       ACEPTAR TRABAJO (El primero que llega se lo queda)
-       ======================================================== */
-    public function reclamarTrabajo($idSolicitud, $idProfesional) {
-        $db = Database::getInstance()->getConnection();
+        /** El cliente puede cancelar mientras el técnico aún no va en camino. */
+    public function cancelarPorCliente(int $idSolicitud, int $idUsuario): void
+    {
+               $stmt = $this->db->prepare("
+            UPDATE solicitudes_servicio s
+             INNER JOIN clientes c ON c.id_cliente = s.id_cliente
+               SET s.estado_servicio = 'CANCELADA', s.fecha_finalizacion = NOW(), s.motivo_cancelacion = 'Cancelada por el cliente'
+             WHERE s.id_solicitud = :id AND c.id_usuario = :u AND s.estado_servicio IN ('PENDIENTE','ACEPTADA')");
+        $stmt->execute([':id' => $idSolicitud, ':u' => $idUsuario]);
 
-        // 1. Candado de seguridad: Verificar que NO tenga ya un trabajo activo
-        $stmtActivo = $db->prepare("
-            SELECT id_solicitud 
-            FROM solicitudes_servicio 
-            WHERE id_profesional = :id_prof 
-              AND estado_servicio IN ('ACEPTADA', 'EN_CAMINO', 'EN_PROCESO')
-            LIMIT 1
-        ");
-        $stmtActivo->execute([':id_prof' => $idProfesional]);
-        if ($stmtActivo->fetch()) {
-            throw new Exception("Ya tienes un trabajo activo. Finalízalo antes de aceptar otro.");
+        if ($stmt->rowCount() === 0) {
+            throw new DomainException('Esta solicitud ya no se puede cancelar.');
         }
-        
-        // 2. El UPDATE con 'IS NULL' es un candado de concurrencia. Si alguien más le ganó, esto fallará.
-        $stmt = $db->prepare("
-            UPDATE solicitudes_servicio 
-            SET id_profesional = :id_prof, 
-                estado_servicio = 'ACEPTADA' 
-            WHERE id_solicitud = :id_sol 
-              AND estado_servicio = 'PENDIENTE' 
-              AND id_profesional IS NULL
-        ");
-        
-        $stmt->execute([
-            ':id_prof' => $idProfesional,
-            ':id_sol' => $idSolicitud
-        ]);
-        
-        // Si rowCount > 0, significa que él ganó la carrera
-        if ($stmt->rowCount() > 0) {
-            // Aquí le descuentas 1 TOKEN al profesional por ganar el trabajo
-            $stmtToken = $db->prepare("UPDATE profesionales SET tokens_disponibles = tokens_disponibles - 1 WHERE id_profesional = :id_prof");
-            $stmtToken->execute([':id_prof' => $idProfesional]);
-            return true;
+    }
+
+        public function guardarTiempoEstimado(int $idSolicitud, int $idProfesional, int $minutos): void
+    {
+        if ($minutos < 1 || $minutos > 600) {
+            return;
         }
-        
-        return false; // Alguien más se lo llevó
+        $this->db->prepare(
+            "UPDATE solicitudes_servicio SET tiempo_estimado_llegada_min = :m
+              WHERE id_solicitud = :id AND id_profesional = :p AND estado_servicio = 'ACEPTADA'"
+        )->execute([':m' => $minutos, ':id' => $idSolicitud, ':p' => $idProfesional]);
     }
 }

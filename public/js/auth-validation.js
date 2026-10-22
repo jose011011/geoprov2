@@ -27,9 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (isValid) {
             input.classList.remove('is-invalid');
             input.classList.add('is-valid');
-            if (input.parentElement.classList.contains('input-group')) {
-                input.parentElement.querySelector('.input-group-text').classList.add('is-valid-addon');
-            }
+           const addon = input.parentElement.querySelector('.input-group-text');
+if (addon) addon.classList.add('is-valid-addon');
             if (feedback && feedback.classList.contains('invalid-feedback')) {
                 feedback.innerText = '';
                 feedback.style.display = 'none';
@@ -37,9 +36,8 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             input.classList.remove('is-valid');
             input.classList.add('is-invalid');
-            if (input.parentElement.classList.contains('input-group')) {
-                input.parentElement.querySelector('.input-group-text').classList.remove('is-valid-addon');
-            }
+            const addon = input.parentElement.querySelector('.input-group-text');
+if (addon) addon.classList.remove('is-valid-addon');
             if (feedback && feedback.classList.contains('invalid-feedback')) {
                 feedback.innerText = mensajeError;
                 feedback.style.display = 'block';

@@ -1,320 +1,160 @@
-<?php require_once "../app/views/layouts/header.php"; ?>
+<?php
+require __DIR__ . '/../layouts/header.php';
+$id     = (int) $chat['id_solicitud'];
+$volver = BASE_URL . '/solicitud/detalle/' . $id;
+$vence  = !empty($chat['fecha_finalizacion']) ? date('d/m/Y', strtotime($chat['fecha_finalizacion'] . ' +15 days')) : null;
+?>
 
-<style>
-/* ============================================================
-   GEO-PRO CHAT — PREMIUM UI
-   ============================================================ */
-:root {
-    --geo-dark: #071827;
-    --geo-primary: #08b7a5;
-    --geo-primary-dark: #079486;
-    --geo-bg: #f5f7fa;
-    --geo-text: #172033;
-    --geo-border: #e8edf2;
-}
-
-body { background: var(--geo-bg) !important; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-.geo-navbar { display: none !important; } /* Ocultamos el navbar por defecto para mayor inmersión */
-
-/* Contenedor Principal del Chat */
-.chat-container {
-    max-width: 950px;
-    margin: 30px auto;
-    background: #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 15px 40px rgba(7, 24, 39, 0.08);
-    display: flex;
-    flex-direction: column;
-    height: 85vh; /* Ocupa casi toda la pantalla */
-    min-height: 500px;
-    border: 1px solid var(--geo-border);
-    overflow: hidden;
-}
-
-/* Cabecera del Chat */
-.chat-header {
-    padding: 20px 25px;
-    background: #ffffff;
-    border-bottom: 1px solid var(--geo-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 10;
-}
-
-.chat-header-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.chat-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--geo-primary), #2563eb);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 1.2rem;
-    box-shadow: 0 4px 10px rgba(8, 183, 165, 0.2);
-}
-
-.chat-title { margin: 0; font-weight: 800; color: var(--geo-text); font-size: 1.1rem; }
-.chat-subtitle { margin: 0; font-size: 0.8rem; color: #64748b; font-weight: 500; }
-.chat-code { background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-family: monospace; font-size: 0.75rem; color: #475569; border: 1px solid #e2e8f0;}
-
-/* Cuerpo del Chat (Mensajes) */
-.chat-body {
-    flex: 1;
-    background: #f8fafc;
-    padding: 25px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-.chat-body::-webkit-scrollbar { width: 6px; }
-.chat-body::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-
-/* Burbujas de Mensaje */
-.msg-row { display: flex; width: 100%; }
-.msg-mine { justify-content: flex-end; }
-.msg-theirs { justify-content: flex-start; }
-
-.bubble {
-    max-width: 70%;
-    padding: 12px 18px;
-    position: relative;
-    word-wrap: break-word;
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
-
-/* Mi burbuja (Verde/Azul) */
-.bubble-mine {
-    background: linear-gradient(135deg, var(--geo-primary), var(--geo-primary-dark));
-    color: white;
-    border-radius: 20px 20px 4px 20px; /* Esquina inferior derecha en punta */
-    box-shadow: 0 5px 15px rgba(8, 183, 165, 0.2);
-}
-
-/* Su burbuja (Blanca) */
-.bubble-theirs {
-    background: #ffffff;
-    color: var(--geo-text);
-    border-radius: 20px 20px 20px 4px; /* Esquina inferior izquierda en punta */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-    border: 1px solid var(--geo-border);
-}
-
-.msg-time { font-size: 0.7rem; margin-top: 5px; text-align: right; font-weight: 600; }
-.bubble-mine .msg-time { color: rgba(255,255,255,0.7); }
-.bubble-theirs .msg-time { color: #94a3b8; }
-
-.msg-image { max-width: 100%; border-radius: 12px; margin-bottom: 8px; border: 2px solid rgba(255,255,255,0.2); }
-
-/* Pie del Chat (Input) */
-.chat-footer {
-    padding: 20px 25px;
-    background: #ffffff;
-    border-top: 1px solid var(--geo-border);
-}
-
-.chat-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: #f1f5f9;
-    padding: 8px 12px;
-    border-radius: 50px;
-    border: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
-}
-.chat-input-wrapper:focus-within { background: #ffffff; border-color: var(--geo-primary); box-shadow: 0 0 0 4px rgba(8, 183, 165, 0.1); }
-
-.btn-attach {
-    width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0; color: #64748b; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;
-}
-.btn-attach:hover { background: #cbd5e1; color: var(--geo-dark); }
-
-.chat-input { border: none; background: transparent; flex: 1; outline: none; padding: 0 10px; font-size: 0.95rem; color: var(--geo-text); }
-
-.btn-send {
-    width: 42px; height: 42px; border-radius: 50%; background: var(--geo-primary); color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; box-shadow: 0 4px 10px rgba(8, 183, 165, 0.3);
-}
-.btn-send:hover { background: var(--geo-primary-dark); transform: scale(1.05); }
-
-/* Responsive */
-@media(max-width: 768px) {
-    .chat-container { margin: 0; height: 100vh; border-radius: 0; border: none; }
-    .bubble { max-width: 85%; }
-}
-</style>
-
-<div class="container-fluid p-0">
-    <div class="chat-container">
-        
-        <!-- CABECERA -->
-        <div class="chat-header">
-            <div class="chat-header-info">
-                <a href="javascript:history.back()" class="btn btn-light rounded-circle border me-2" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-arrow-left text-muted"></i>
-                </a>
-                
-                <div class="chat-avatar">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <div>
-                    <h5 class="chat-title"><?= htmlspecialchars($solicitud['prof_nombre'] . ' ' . $solicitud['prof_apellido']) ?></h5>
-                    <p class="chat-subtitle">Asistencia Técnica con <?= htmlspecialchars($solicitud['cliente_nombre']) ?></p>
+<div class="container py-3 py-md-4" style="max-width: 780px;">
+    <div class="card fx-chat overflow-hidden">
+        <div class="fx-chat-head border-bottom d-flex align-items-center justify-content-between gap-3 p-3">
+            <div class="d-flex align-items-center gap-3 min-w-0">
+                <span class="fx-avatar-sm lg"><?= Security::e(mb_strtoupper(mb_substr($chat['otro_nombre'], 0, 1, 'UTF-8'), 'UTF-8')) ?></span>
+                <div class="min-w-0">
+                    <div class="fw-bold text-truncate"><?= Security::e($chat['otro_nombre']) ?></div>
+                    <div class="small text-muted text-truncate"><?= Security::e($chat['nombre_categoria'] ?? 'Servicio') ?> · <?= Security::e($chat['codigo_seguimiento']) ?> · <?= Catalogo::etiquetaEstado($chat['estado_servicio']) ?></div>
                 </div>
             </div>
-            <div>
-                <span class="chat-code"><i class="fa-solid fa-hashtag"></i> <?= htmlspecialchars($solicitud['codigo_seguimiento']) ?></span>
-            </div>
+            <a href="<?= $volver ?>" class="btn btn-outline-primary btn-sm flex-shrink-0">Ver solicitud</a>
         </div>
 
-        <!-- CUERPO DE MENSAJES -->
-        <div id="chatBox" class="chat-body">
-            <?php foreach ($mensajes as $m): ?>
-                <?php $esMio = (int) $m['id_remitente'] === (int) $_SESSION['user_id']; ?>
-                
-                <div class="msg-row <?= $esMio ? 'msg-mine' : 'msg-theirs' ?>">
-                    <div class="bubble <?= $esMio ? 'bubble-mine' : 'bubble-theirs' ?>">
-                        
-                        <?php if ($m['tipo_mensaje'] === 'IMAGEN' && $m['archivo_adjunto']): ?>
-                            <a href="<?= BASE_URL . '/' . htmlspecialchars($m['archivo_adjunto']) ?>" target="_blank">
-                                <img src="<?= BASE_URL . '/' . htmlspecialchars($m['archivo_adjunto']) ?>" class="msg-image" alt="Imagen adjunta">
-                            </a>
-                        <?php endif; ?>
-                        
-                        <?php if ($m['mensaje']): ?>
-                            <div><?= nl2br(htmlspecialchars($m['mensaje'])) ?></div>
-                        <?php endif; ?>
-                        
-                        <div class="msg-time"><?= date('H:i', strtotime($m['fecha_envio'])) ?></div>
-                    </div>
-                </div>
+        <?php if ($chat['abierto']): ?>
+            <div class="fx-chat-aviso"><i class="fa-solid fa-shield-halved me-1"></i>Por tu privacidad, los mensajes se eliminan automáticamente <strong>15 días después</strong> de que termine el servicio.</div>
+        <?php else: ?>
+            <div class="fx-chat-aviso cerrado"><i class="fa-solid fa-lock me-1"></i>Servicio terminado: el chat es solo de lectura y se eliminará <?= $vence ? 'el <strong>' . $vence . '</strong>' : '<strong>15 días después</strong> del cierre' ?>. Guarda lo que necesites.</div>
+        <?php endif; ?>
 
-            <?php endforeach; ?>
-        </div>
+        <div class="fx-chat-msgs" id="mensajes" aria-live="polite"></div>
 
-        <!-- PIE / FORMULARIO -->
-        <div class="chat-footer">
-            <form id="formChat" enctype="multipart/form-data">
-                <input type="hidden" name="id_solicitud" value="<?= (int) $idSolicitud ?>">
-                
-                <div class="chat-input-wrapper">
-                    <!-- Botón de Adjuntar Archivo Oculto -->
-                    <label class="btn-attach mb-0" title="Adjuntar Imagen">
-                        <i class="fa-solid fa-paperclip"></i>
-                        <input type="file" name="adjunto" id="adjuntoInput" accept="image/*" class="d-none">
-                    </label>
-                    
-                    <input type="text" name="mensaje" id="inputMensaje" class="chat-input" placeholder="Escribe tu mensaje aquí..." autocomplete="off">
-                    
-                    <button type="submit" class="btn-send" title="Enviar Mensaje">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
-                </div>
+        <?php if ($chat['abierto']): ?>
+            <div class="px-3 pt-2 small text-muted d-none" id="infoImagen"></div>
+            <form class="fx-chat-form border-top d-flex align-items-center gap-2 p-3" id="formChat" enctype="multipart/form-data" autocomplete="off">
+                <label class="btn btn-outline-primary mb-0" title="Adjuntar imagen"><i class="fa-regular fa-image"></i>
+                    <input type="file" id="imagen" name="imagen" accept="image/jpeg,image/png,image/webp" hidden>
+                </label>
+                <input type="text" id="texto" name="mensaje" class="form-control" maxlength="1000" placeholder="Escribe un mensaje...">
+                <button class="btn btn-primary" id="btnEnviar" aria-label="Enviar"><i class="fa-solid fa-paper-plane"></i></button>
             </form>
-        </div>
-
+        <?php endif; ?>
     </div>
 </div>
 
+<!-- Visor de imágenes -->
+<div class="modal fade" id="visorImagen" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content bg-transparent border-0">
+        <button type="button" class="btn-close btn-close-white ms-auto mb-2" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <img id="visorImg" class="img-fluid rounded" alt="Imagen del chat" style="max-height: 80vh; object-fit: contain; background:#000;">
+    </div></div>
+</div>
+
 <script>
-const idSolicitud = <?= (int) $idSolicitud ?>;
-let ultimoId = <?= !empty($mensajes) ? (int) end($mensajes)['id_mensaje'] : 0 ?>;
-const chatBox = document.getElementById('chatBox');
-const miId = <?= (int) $_SESSION['user_id'] ?>;
+(function () {
+    const ID = <?= $id ?>, YO = <?= (int) $yo ?>;
+    const URL_IMG = FX.base + '/uploads/chat/';
+    const caja = document.getElementById('mensajes');
+    let ultimo = 0, ultimoDia = '';
+    const abierto = <?= $chat['abierto'] ? 'true' : 'false' ?>;
 
-// Mantener el scroll siempre abajo
-function scrollAbajo() {
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-scrollAbajo();
-
-// Lógica para pintar mensajes nuevos sin recargar
-function pintarMensaje(m) {
-    const esMio = parseInt(m.id_remitente) === miId;
-    const div = document.createElement('div');
-    div.className = 'msg-row ' + (esMio ? 'msg-mine' : 'msg-theirs');
-
-    let contenido = '';
-    if (m.tipo_mensaje === 'IMAGEN' && m.archivo_adjunto) {
-        contenido += `<a href="<?= BASE_URL ?>/${m.archivo_adjunto}" target="_blank"><img src="<?= BASE_URL ?>/${m.archivo_adjunto}" class="msg-image" alt="Adjunto"></a>`;
+    const claveDia = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    function etiquetaDia(d) {
+        const hoy = new Date(), ayer = new Date(Date.now() - 86400000);
+        if (claveDia(d) === claveDia(hoy)) return 'Hoy';
+        if (claveDia(d) === claveDia(ayer)) return 'Ayer';
+        return d.toLocaleDateString('es-BO', { day: '2-digit', month: 'long' });
     }
-    if (m.mensaje) {
-        contenido += `<div>${m.mensaje.replace(/</g,'&lt;')}</div>`;
-    }
-    const hora = new Date(m.fecha_envio.replace(' ', 'T')).toLocaleTimeString('es-BO', {hour:'2-digit', minute:'2-digit'});
 
-    div.innerHTML = `
-        <div class="bubble ${esMio ? 'bubble-mine' : 'bubble-theirs'}">
-            ${contenido}
-            <div class="msg-time">${hora}</div>
-        </div>
-    `;
-    chatBox.appendChild(div);
-}
-
-// POLLING: Consultar nuevos mensajes cada 4 segundos
-async function consultarNuevos() {
-    try {
-        const res = await fetch(`<?= BASE_URL ?>/chat/nuevos/${idSolicitud}?ultimo_id=${ultimoId}`);
-        const data = await res.json();
-        if (data.ok && data.mensajes.length > 0) {
-            data.mensajes.forEach(m => {
-                pintarMensaje(m);
-                ultimoId = m.id_mensaje;
-            });
-            scrollAbajo();
+    function agregar(m) {
+        const fecha = new Date(String(m.fecha_envio).replace(' ', 'T'));
+        if (claveDia(fecha) !== ultimoDia) {
+            ultimoDia = claveDia(fecha);
+            const sep = document.createElement('div');
+            sep.className = 'fx-fecha';
+            sep.innerHTML = '<span></span>';
+            sep.firstChild.textContent = etiquetaDia(fecha);
+            caja.appendChild(sep);
         }
-    } catch (e) { /* Fallo silencioso de red, reintentará luego */ }
-}
 
-setInterval(consultarNuevos, 4000);
-
-// Enviar mensaje vía AJAX
-document.getElementById('formChat').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    
-    const inputMsg = document.getElementById('inputMensaje');
-    const inputAdj = document.getElementById('adjuntoInput');
-    
-    // Evitar envío vacío
-    if(inputMsg.value.trim() === '' && inputAdj.files.length === 0) return;
-
-    const formData = new FormData(this);
-    
-    // UI: Limpiar input instantáneamente para dar sensación de rapidez
-    inputMsg.value = '';
-    
-    try {
-        const res = await fetch('<?= BASE_URL ?>/chat/enviar', { method: 'POST', body: formData });
-        const data = await res.json();
-
-        if (data.ok) {
-            inputAdj.value = ''; // Limpiar el archivo si había uno
-            await consultarNuevos(); // Forzar la consulta para verlo inmediatamente
+        const div = document.createElement('div');
+        if (m.tipo_mensaje === 'SISTEMA') {
+            div.className = 'fx-msg sistema';
+            div.textContent = m.mensaje || '';
         } else {
-            alert(data.error || 'No se pudo enviar el mensaje.');
+            div.className = 'fx-msg ' + (parseInt(m.id_remitente, 10) === YO ? 'me' : 'other');
+            if (m.archivo_adjunto) {
+                const img = document.createElement('img');
+                img.src = URL_IMG + encodeURIComponent(m.archivo_adjunto);
+                img.alt = 'Imagen enviada'; img.loading = 'lazy';
+                div.appendChild(img);
+            }
+            if (m.mensaje) {
+                const p = document.createElement('div');
+                p.textContent = m.mensaje;
+                div.appendChild(p);
+            }
+            const s = document.createElement('small');
+            s.textContent = fecha.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+            div.appendChild(s);
         }
-    } catch (e) {
-        alert('Error de conexión al enviar el mensaje.');
+        caja.appendChild(div);
+        ultimo = Math.max(ultimo, parseInt(m.id_mensaje, 10));
     }
-});
 
-// Auto-enviar formulario al seleccionar una imagen
-document.getElementById('adjuntoInput').addEventListener('change', function () {
-    if (this.files.length > 0) {
-        document.getElementById('formChat').dispatchEvent(new Event('submit'));
+    function pintar(lista, forzarFinal) {
+        if (!lista.length) return;
+        const alFinal = forzarFinal || caja.scrollHeight - caja.scrollTop - caja.clientHeight < 90;
+        lista.forEach(agregar);
+        if (alFinal) caja.scrollTop = caja.scrollHeight;
     }
-});
+
+    async function consultar() {
+        if (document.hidden) return;
+        try {
+            const r = await fetch(FX.base + '/chat/mensajes/' + ID + '?desde=' + ultimo, { headers: { 'Accept': 'application/json' } });
+            const d = await r.json();
+            if (d.ok) { pintar(d.mensajes, false); if (abierto && !d.abierto) location.reload(); }
+        } catch (e) { /* se reintenta */ }
+    }
+
+    pintar(<?= json_encode($mensajes, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, true);
+    setInterval(consultar, 3000);
+
+    // Ver imagen en grande
+    caja.addEventListener('click', function (e) {
+        if (e.target.tagName !== 'IMG') return;
+        document.getElementById('visorImg').src = e.target.src;
+        new bootstrap.Modal(document.getElementById('visorImagen')).show();
+    });
+
+    const form = document.getElementById('formChat');
+    if (form) {
+        const texto = document.getElementById('texto'), imagen = document.getElementById('imagen'), info = document.getElementById('infoImagen'), btn = document.getElementById('btnEnviar');
+
+        imagen.addEventListener('change', function () {
+            if (!imagen.files.length) { info.classList.add('d-none'); return; }
+            info.classList.remove('d-none');
+            info.innerHTML = '<i class="fa-regular fa-image me-1"></i><span></span> <a href="#" class="ms-2">Quitar</a>';
+            info.querySelector('span').textContent = imagen.files[0].name;
+            info.querySelector('a').addEventListener('click', function (ev) { ev.preventDefault(); imagen.value = ''; info.classList.add('d-none'); });
+        });
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!texto.value.trim() && !imagen.files.length) return;
+            btn.disabled = true;
+            try {
+                const r = await fetch(FX.base + '/chat/enviar/' + ID, { method: 'POST', headers: { 'X-CSRF-Token': FX.csrf }, body: new FormData(form) });
+                const d = await r.json();
+                if (!d.ok) { alert(d.error || 'No se pudo enviar el mensaje.'); }
+                else { form.reset(); info.classList.add('d-none'); await consultar(); caja.scrollTop = caja.scrollHeight; }
+            } catch (err) {
+                alert('No se pudo enviar el mensaje. Revisa tu conexión.');
+            } finally {
+                btn.disabled = false;
+                texto.focus();
+            }
+        });
+    }
+})();
 </script>
 
-<?php require_once "../app/views/layouts/footer.php"; ?>
+<?php require __DIR__ . '/../layouts/footer.php'; ?>

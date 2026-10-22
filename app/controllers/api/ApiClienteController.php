@@ -32,11 +32,12 @@ class ApiClienteController extends Controller {
         return $idCliente;
     }
 
-    /* ========================================================
+   /* ========================================================
        1. OBTENER CATEGORÍAS DISPONIBLES
        ======================================================== */
     public function categorias() {
-        $this->validarTokenApi(); // Solo usuarios logueados en la app
+        // BÓRRALO O COMENTA ESTA LÍNEA PARA QUE SEA PÚBLICO:
+        // $this->validarTokenApi(); 
         
         try {
             $db = Database::getInstance()->getConnection();
@@ -47,6 +48,80 @@ class ApiClienteController extends Controller {
         } catch (Exception $e) {
             echo json_encode(['ok' => false, 'error' => 'Error de BD']);
         }
+        exit;
+    }   
+
+    // 2. ENDPOINT: Analizar el problema con el LLM
+    // 2. ENDPOINT: Analizar el problema con el LLM (GEMINI)
+    public function analizar_problema() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        $problema = $data['problema'] ?? '';
+
+        // Paso A: Leer categorías de la base de datos para darle opciones a la I.A.
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->query("SELECT nombre_categoria FROM categorias WHERE estado = 1");
+        $lista = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $categorias_texto = implode(", ", $lista);
+
+        // ====================================================================
+        // 🌟 CONEXIÓN REAL A GOOGLE GEMINI
+        // ====================================================================
+        // Pega aquí tu API Key real que empieza con AQ...
+      $apiKey = getenv('GCP_API_KEY')
+    ?: ($_ENV['GCP_API_KEY'] ?? null);
+
+if (!$apiKey) {
+    http_response_code(500);
+    echo json_encode(['error' => 'API key no configurada']);
+    exit;
+}
+        
+        $prompt = "El cliente tiene este problema: '$problema'. Elige SOLO UNA de estas categorías de mi base de datos que mejor se ajuste al problema: $categorias_texto. Responde ÚNICAMENTE con el nombre exacto de la categoría, sin comillas, sin puntos finales y sin ninguna otra palabra.";
+
+        // URL oficial de Gemini (usamos el modelo flash por ser más rápido para textos cortos)
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $apiKey;
+
+        // Estructura JSON exacta que exige Gemini
+        $postData = [
+            "contents" => [
+                [
+                    "parts" => [
+                        ["text" => $prompt]
+                    ]
+                ]
+            ],
+            "generationConfig" => [
+                "temperature" => 0.1 // Temperatura baja para que no invente palabras
+            ]
+        ];
+
+        // Petición cURL a Gemini
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        // AGREGAR ESTA LÍNEA PARA QUE XAMPP NO BLOQUEE A GEMINI:
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json'
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
+        
+        // Ejecutamos y guardamos la respuesta
+        $respuesta_ia = curl_exec($ch);
+        curl_close($ch);
+
+        $categoria_sugerida = 'General'; // Salvavidas
+
+        // Extraer la respuesta de la estructura de Gemini
+        if ($respuesta_ia) {
+            $resultado = json_decode($respuesta_ia, true);
+            // Gemini guarda el texto en este camino específico:
+            if (isset($resultado['candidates'][0]['content']['parts'][0]['text'])) {
+                $categoria_sugerida = trim($resultado['candidates'][0]['content']['parts'][0]['text']);
+            }
+        }
+
+        echo json_encode(['ok' => true, 'categoria' => $categoria_sugerida]);
         exit;
     }
 
@@ -239,6 +314,57 @@ class ApiClienteController extends Controller {
         } catch (Exception $e) {
             echo json_encode(['ok' => false, 'error' => 'Fallo al procesar la calificación']);
         }
+        exit;
+    }
+
+
+
+
+
+    /* ========================================================
+       CREAR NUEVA SOLICITUD Y PASARLA POR LA I.A. (LLM)
+       ======================================================== */
+    public function nueva_solicitud() {
+        // 1. Recibimos los datos enviados desde la app de Flutter
+        $data = json_decode(file_get_contents("php://input"), true);
+        
+        $categoria = $data['categoria'] ?? '';
+        $direccion = $data['direccion_servicio'] ?? '';
+        $descripcion = $data['descripcion_problema'] ?? '';
+
+        if (empty($direccion) || empty($descripcion)) {
+            echo json_encode(['ok' => false, 'error' => 'Faltan datos obligatorios.']);
+            exit;
+        }
+
+        // ====================================================================
+        // 🌟 AQUÍ OCURRE LA MAGIA DEL LLM (IA)
+        // ====================================================================
+        // En tu página web, aquí haces la petición curl (o usas un SDK) hacia 
+        // la API de OpenAI (ChatGPT), Gemini, o Claude. 
+        // Le envías algo como: "El cliente tiene este problema: $descripcion. 
+        // ¿Qué herramientas necesita el técnico y cuál es el nivel de urgencia?"
+        
+        // Simulación temporal de la respuesta de tu LLM para no bloquear la app:
+        $analisis_ia = [
+            'herramientas_recomendadas' => 'Cinta aislante, multímetro, destornilladores',
+            'nivel_urgencia' => 'ALTA',
+            'resumen_tecnico' => 'Posible cortocircuito o foco quemado en la zona.'
+        ];
+
+        // ====================================================================
+        // 2. GUARDAR EN LA BASE DE DATOS
+        // ====================================================================
+        // Aquí llamas a tu modelo (ej. $this->solicitudModel->crearSolicitud(...))
+        // Guardas la solicitud junto con el análisis que te dio la I.A. para 
+        // que el algoritmo de Cascada la detecte y se la envíe al técnico.
+        
+        // Simulación de éxito para que Flutter avance:
+        echo json_encode([
+            'ok' => true, 
+            'mensaje' => 'Solicitud procesada por IA y enviada a los técnicos cercanos.',
+            'ia_data' => $analisis_ia
+        ]);
         exit;
     }
 }

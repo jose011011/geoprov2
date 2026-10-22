@@ -1,98 +1,172 @@
-/* Importar fuente moderna y legible (usada por startups y FinTechs) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* FixGeo - estilos de la aplicación. Requiere fixgeo-theme.css cargado antes. */
 
 :root {
-    --geo-primary: #0A192F;      /* Azul Marino Profundo - Transmite Seguridad */
-    --geo-accent: #00BFA6;       /* Verde Menta - Transmite Acción/Inmediatez */
-    --geo-accent-hover: #019985;
-    --geo-bg: #F4F7F6;           /* Gris claro para el fondo */
-    --geo-card: #FFFFFF;
-    --geo-text: #2D3748;
+  /* Compatibilidad: las vistas antiguas que usen --geo-* toman la paleta nueva */
+  --geo-primary: var(--fx-ink);
+  --geo-accent: var(--fx-blue);
+  --geo-accent-hover: var(--fx-blue-dark);
+  --geo-bg: var(--fx-bg);
+  --geo-card: var(--fx-white);
+  --geo-text: var(--fx-ink);
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--geo-bg);
-    color: var(--geo-text);
-    -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--fx-bg);
+  color: var(--fx-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ===== Navbar Sticky y Moderna ===== */
-.geo-navbar {
-    background-color: var(--geo-primary);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    padding: 0.8rem 1rem;
+/* ===== Navbar (blanco) ===== */
+.fx-navbar {
+  min-height: 68px;
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--fx-line);
+  box-shadow: 0 2px 14px rgba(15, 23, 42, .04);
+  z-index: 1050;
+}
+.fx-brand {
+  display: inline-flex; align-items: center; gap: .6rem;
+  font-size: 1.4rem; font-weight: 800; letter-spacing: -.03em;
+  color: var(--fx-ink); text-decoration: none;
+}
+.fx-brand:hover { color: var(--fx-ink); }
+.fx-brand b { color: var(--fx-blue); font-weight: 800; }
+.fx-brand-mark {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: var(--fx-blue); color: var(--fx-white); font-size: 1rem;
+  box-shadow: 0 6px 16px rgba(29, 63, 180, .25);
 }
 
-.geo-brand {
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: -0.5px;
-    color: #ffffff !important;
+.fx-navbar .btn {
+  min-height: 40px; border-radius: 12px; font-size: .82rem;
+  display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .95rem;
 }
 
-.geo-brand i {
-    color: var(--geo-accent);
-    margin-right: 5px;
+/* ===== Botones globales ===== */
+.btn { border-radius: 12px; font-weight: 600; transition: transform .2s, box-shadow .2s, background .2s; }
+.btn-primary:hover, .btn-success:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(29, 63, 180, .25); }
+/* Las vistas viejas usan btn-success como botón de marca: ahora es azul FixGeo */
+.btn-success {
+  --bs-btn-bg: var(--fx-blue); --bs-btn-border-color: var(--fx-blue);
+  --bs-btn-hover-bg: var(--fx-blue-dark); --bs-btn-hover-border-color: var(--fx-blue-dark);
+  --bs-btn-active-bg: var(--fx-blue-dark); --bs-btn-active-border-color: var(--fx-blue-dark);
+  --bs-btn-color: #fff; --bs-btn-hover-color: #fff; --bs-btn-active-color: #fff;
 }
 
-/* ===== Botones Globales (Efecto App Móvil) ===== */
-.btn {
-    border-radius: 12px;
-    font-weight: 600;
-    padding: 10px 20px;
-    transition: all 0.3s ease;
+/* ===== Iconos y usuario ===== */
+.fx-icon-btn {
+  position: relative; width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center; text-decoration: none;
+  color: var(--fx-ink); background: var(--fx-white); border: 1px solid var(--fx-line);
+  transition: .2s;
 }
-
-.btn-success, .btn-primary {
-    background-color: var(--geo-accent);
-    border-color: var(--geo-accent);
-    color: #ffffff;
-}
-
-.btn-success:hover, .btn-primary:hover {
-    background-color: var(--geo-accent-hover);
-    border-color: var(--geo-accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 191, 166, 0.25);
-}
-
-.btn-outline-light {
-    border-radius: 12px;
-}
-
-/* ===== Tarjetas (Cards flotantes) ===== */
-.card {
-    background-color: var(--geo-card);
-    border: none;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-}
-
-/* ===== Notificaciones ===== */
+.fx-icon-btn:hover { color: var(--fx-blue); background: var(--fx-bg); }
 .badge-notif {
-    background-color: #ff4757 !important;
-    border: 2px solid var(--geo-primary);
-    padding: 4px 6px;
+  background: #ef4444 !important; color: #fff !important;
+  border: 2px solid var(--fx-white); min-width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center; padding: 0 4px; font-weight: 800;
 }
+.fx-user {
+  display: flex; align-items: center; gap: .55rem; min-height: 42px;
+  padding: 4px 10px 4px 5px; border-radius: 13px; text-decoration: none;
+  color: var(--fx-ink); background: var(--fx-white); border: 1px solid var(--fx-line); transition: .2s;
+}
+.fx-user:hover { background: var(--fx-bg); color: var(--fx-ink); }
+.fx-user::after { display: none; }
+.fx-user-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8rem; font-weight: 700; }
+.fx-user-chevron { font-size: .65rem; color: var(--fx-muted); transition: transform .2s; }
+.fx-user[aria-expanded="true"] .fx-user-chevron { transform: rotate(180deg); }
+.fx-avatar-sm {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center; font-weight: 800; font-size: .85rem;
+  background: var(--fx-gradient); color: var(--fx-ink);
+}
+.fx-avatar-sm.lg { width: 42px; height: 42px; font-size: 1rem; border-radius: 12px; }
 
-/* ===== Sistema de badges de estado unificado ===== */
-.badge-estado {
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+/* ===== Menús desplegables ===== */
+.fx-menu {
+  margin-top: .6rem !important; padding: .5rem; border: 1px solid var(--fx-line);
+  border-radius: 16px; box-shadow: var(--fx-shadow); animation: fxDrop .16s ease-out;
 }
-.badge-pendiente   { background: #fef3c7; color: #92400e; }
-.badge-aceptada    { background: #dbeafe; color: #1e40af; }
-.badge-en_camino   { background: #e0e7ff; color: #3730a3; }
-.badge-en_proceso  { background: #fef3c7; color: #92400e; }
-.badge-finalizada  { background: #d1fae5; color: #065f46; }
-.badge-cancelada   { background: #fee2e2; color: #991b1b; }
+.fx-menu .dropdown-item { border-radius: 10px; padding: .6rem .75rem; font-size: .85rem; white-space: normal; }
+.fx-menu .dropdown-item:hover { background: var(--fx-bg); }
+.fx-user-menu { min-width: 250px; }
+.fx-account-header { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem .8rem; margin-bottom: .3rem; border-bottom: 1px solid var(--fx-line); }
+.fx-notif { width: 340px; max-height: 420px; overflow-y: auto; }
+.fx-notif .dropdown-item.fw-bold { background: #eef3ff; }
+.min-w-0 { min-width: 0; }
+@keyframes fxDrop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* ===== Tarjetas ===== */
+.card {
+  background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: var(--fx-radius);
+  box-shadow: 0 4px 15px rgba(15, 23, 42, .03); transition: transform .25s, box-shadow .25s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--fx-shadow); }
+
+/* ===== Badges de estado ===== */
+.badge-estado { padding: 6px 12px; border-radius: 12px; font-size: .75rem; font-weight: 600; letter-spacing: .3px; }
+.badge-pendiente  { background: #fef3c7; color: #92400e; }
+.badge-aceptada   { background: #dbeafe; color: #1e40af; }
+.badge-en_camino  { background: #e0e7ff; color: #3730a3; }
+.badge-en_proceso { background: #cffafe; color: #155e75; }
+.badge-finalizada { background: #d1fae5; color: #065f46; }
+.badge-cancelada  { background: #fee2e2; color: #991b1b; }
+
+/* ===== Responsive ===== */
+@media (max-width: 575.98px) {
+  .fx-btn-label, .fx-user-name, .fx-user-chevron { display: none; }
+  .fx-navbar .btn { padding: .45rem .7rem; }
+  .fx-user { padding: 3px; border: 0; background: transparent; }
+  .fx-notif { position: fixed !important; left: 10px; right: 10px; top: 68px; width: auto; margin: 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+
+
+
+
+
+
+
+/* ===== Módulo cliente ===== */
+.fx-hero-card {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 2rem;
+  background: var(--fx-white); border: 1px solid var(--fx-line); box-shadow: var(--fx-shadow);
+}
+.fx-hero-card::before {
+  content: ""; position: absolute; width: 360px; height: 360px; right: -120px; top: -160px;
+  border-radius: 50%; background: var(--fx-gradient); opacity: .16; filter: blur(30px); pointer-events: none;
+}
+.fx-hero-card > * { position: relative; }
+.fx-page-title { font-weight: 800; letter-spacing: -.02em; }
+
+.fx-stat { background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px; padding: 1rem 1.25rem; height: 100%; }
+.fx-stat .num { font-size: 1.8rem; font-weight: 800; color: var(--fx-blue); line-height: 1; }
+.fx-stat small { color: var(--fx-muted); font-weight: 500; }
+
+.fx-cat-tile {
+  display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; height: 100%;
+  background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px; padding: 1.25rem .75rem;
+  color: var(--fx-ink); text-decoration: none; transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.fx-cat-tile:hover { transform: translateY(-3px); box-shadow: var(--fx-shadow); border-color: var(--fx-sky); color: var(--fx-ink); }
+.fx-cat-tile .ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 1.3rem; background: rgba(56, 189, 248, .14); color: var(--fx-blue); }
+.fx-cat-tile span.nombre { font-weight: 600; font-size: .9rem; }
+
+.fx-pro { position: relative; background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 18px; padding: 1.1rem; height: 100%; transition: box-shadow .2s, border-color .2s; }
+.fx-pro:hover { box-shadow: var(--fx-shadow); }
+.fx-pro.premium { border: 2px solid transparent; background: linear-gradient(var(--fx-white), var(--fx-white)) padding-box, var(--fx-gradient) border-box; }
+.fx-pro .avatar { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; background: var(--fx-gradient); color: var(--fx-ink); flex-shrink: 0; }
+.fx-pro .fav { position: absolute; top: .9rem; right: .9rem; color: var(--fx-muted); text-decoration: none; }
+.fx-pro .fav.on, .fx-pro .fav:hover { color: #ef4444; }
+.fx-stars { color: #f59e0b; font-size: .85rem; letter-spacing: 1px; }
+
+.fx-pick { cursor: pointer; display: block; height: 100%; }
+.fx-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.fx-pick .fx-pro { border-width: 2px; }
+.fx-pick input:checked + .fx-pro { border-color: var(--fx-blue); box-shadow: 0 0 0 4px rgba(29, 63, 180, .12); }
+.fx-pick input:focus-visible + .fx-pro { outline: 3px solid var(--fx-sky); }

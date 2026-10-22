@@ -1,0 +1,6 @@
+app/config/env.local.php
+app/config/env.production.php
+public/uploads/comprobantes/*
+public/uploads/documentos/*
+public/uploads/chat/*
+!public/uploads/**/.htaccess

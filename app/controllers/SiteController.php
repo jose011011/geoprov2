@@ -1,14 +1,22 @@
 <?php
-class SiteController extends Controller {
-    public function index() {
-        // Si ya está logueado, lo mandamos directo a su panel
-        if (isset($_SESSION['user_id'])) {
-            $rol = (int) $_SESSION['role_id'];
-            $destino = in_array($rol, [1, 2], true) ? 'admin/dashboard'
-                     : ($rol === 3 ? 'profesional/dashboard' : 'cliente/dashboard');
-            header("Location: " . BASE_URL . "/" . $destino);
-            exit;
+class SiteController extends Controller
+{
+    public function index()
+    {
+        $categorias = [];
+        $planes     = [];
+        try {
+            $categorias = (new ClientePanel())->categoriasActivas();
+            $planes     = (new ProfesionalPanel())->planes();
+        } catch (Throwable $e) {
+            error_log('[FixGeo] landing: ' . $e->getMessage());   // la página se muestra igual, sin esas secciones
         }
-        $this->view('site/landing', ['titulo' => 'GEO-PRO | Servicios Técnicos con Geolocalización en La Paz']);
+
+        $this->view('site/landing', [
+            'titulo'     => 'FixGeo | Técnicos verificados en La Paz y El Alto',
+            'categorias' => $categorias,
+            'planes'     => $planes,
+            'panelUrl'   => isset($_SESSION['user_id']) ? BASE_URL . $this->inicioPorRol() : null,
+        ]);
     }
 }

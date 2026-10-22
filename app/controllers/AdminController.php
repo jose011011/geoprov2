@@ -1,417 +1,443 @@
 <?php
-require_once "../app/models/Usuario.php";
+/**
+ * FixGeo - Administración.
+ * ADMIN (rol 2): técnicos, pagos, clientes, categorías, reportes.
+ * SUPER_ADMIN (rol 1): además planes (precios) y auditoría.
+ */
+class AdminController extends Controller
+{
+    private AdminPanel $panel;
 
-class AdminController extends Controller {
-    private Admin $adminModel;
-    private Usuario $usuarioModel;
-
-    public function __construct() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
-        }
-        if (!in_array((int) $_SESSION['role_id'], [1, 2], true)) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
-        }
-        $this->adminModel = new Admin();
-        $this->usuarioModel = new Usuario();
+    public function __construct()
+    {
+        $this->requiereSesion([1, 2]);
+        $this->panel = new AdminPanel();
     }
 
-    /* ========================================================
-       1. DASHBOARD PRINCIPAL
-       ======================================================== */
-    public function dashboard() {
-        $stats = $this->adminModel->estadisticas();
-        $filtro = $_GET['estado'] ?? 'PENDIENTE';
-        $profesionales = $this->adminModel->listarProfesionales($filtro);
+    private function idAdmin(): int
+    {
+        return (int) $_SESSION['user_id'];
+    }
 
+    private function soloSuperAdmin(): void
+    {
+        if ((int) $_SESSION['role_id'] !== 1) {
+            Flash::set('danger', 'Esta sección es solo para el Super Administrador.');
+            $this->redirigir('/admin/dashboard');
+        }
+    }
+
+    private function soloPost(string $volver): void
+    {
+        if (!$this->esPost()) {
+            $this->redirigir($volver);
+        }
+    }
+
+    private function avisarUsuario(int $idUsuario, string $tipo, string $mensaje, string $ruta): void
+    {
+        try {
+            (new Notificacion())->crear($idUsuario, $tipo, $mensaje, BASE_URL . $ruta);
+        } catch (Throwable $e) {
+            error_log('[FixGeo] aviso no enviado: ' . $e->getMessage());
+        }
+    }
+
+    private function auditar(string $accion, string $tabla, ?int $registro, array $datos = []): void
+    {
+        try {
+            (new Usuario())->auditar($this->idAdmin(), $accion, $tabla, $registro, $datos);
+        } catch (Throwable $e) {
+            error_log('[FixGeo] auditoría no registrada: ' . $e->getMessage());
+        }
+    }
+
+    // ===================== PANEL =====================
+    public function dashboard()
+    {
         $this->view('admin/dashboard', [
-            'titulo'        => 'GEO-PRO | Panel Administrativo',
-            'stats'         => $stats,
-            'profesionales' => $profesionales,
-            'filtroActual'  => $filtro
+            'titulo'  => 'FixGeo | Panel de administración',
+            'ind'     => $this->panel->indicadores(),
+            'estados' => $this->panel->solicitudesPorEstado(),
+            'ultimas' => $this->panel->ultimasSolicitudes(),
         ]);
     }
 
-    /* ========================================================
-       2. REVISIÓN Y AUDITORÍA DE EXPEDIENTE PROFESIONAL
-       ======================================================== */
-    public function verProfesional($id = null) {
-        $idProfesional = (int) $id;
-        $perfil = $this->adminModel->obtenerProfesionalDetalle($idProfesional);
-
-        if (!$perfil) {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
+    // ===================== TÉCNICOS =====================
+    public function revisionTecnicos()
+    {
+        $filtro = strtoupper((string) ($_GET['estado'] ?? 'PENDIENTE'));
+        if (!in_array($filtro, ['PENDIENTE', 'APROBADO', 'RECHAZADO', 'TODOS'], true)) {
+            $filtro = 'PENDIENTE';
         }
+        $buscar = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 60);
 
-        $documentos = $this->adminModel->obtenerDocumentos($idProfesional);
-
-        $this->view('admin/ver_profesional', [
-            'titulo'     => 'GEO-PRO | Revisión de ' . ($perfil['nombre'] ?? 'Profesional'),
-            'perfil'     => $perfil,
-            'documentos' => $documentos
+        $this->view('admin/revision_tecnicos', [
+            'titulo'   => 'FixGeo | Validar técnicos',
+            'tecnicos' => $this->panel->tecnicos($filtro, $buscar),
+            'resumen'  => $this->panel->resumen(),
+            'filtro'   => $filtro,
+            'buscar'   => $buscar,
         ]);
     }
 
-    // Método unificado para procesar los botones de ver_profesional.php
-    public function cambiarEstadoProfesional($id = null) {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
+    public function revisionTecnico($idProfesional = 0)
+    {
+        $tecnico = $this->panel->tecnico((int) $idProfesional);
+        if (!$tecnico) {
+            Flash::set('danger', 'No encontramos a ese técnico.');
+            $this->redirigir('/admin/revisionTecnicos');
         }
+        $this->view('admin/revision_tecnico', [
+            'titulo'     => 'FixGeo | Revisar técnico',
+            'tecnico'    => $tecnico,
+            'documentos' => $this->panel->documentos((int) $idProfesional),
+        ]);
+    }
 
-        $idProfesional = (int) ($id ?? $_POST['id_profesional'] ?? 0);
-        $nuevoEstado = $_POST['nuevo_estado'] ?? '';
+    public function revisarDocumentoTecnico()
+    {
+        $this->soloPost('/admin/revisionTecnicos');
+        $idDoc  = (int) ($_POST['id_documento'] ?? 0);
+        $accion = (string) ($_POST['decision'] ?? '');
+        $obs    = mb_substr(trim((string) ($_POST['observacion'] ?? '')), 0, 250);
+        $volver = '/admin/revisionTecnico/' . (int) ($_POST['id_profesional'] ?? 0);
 
         try {
-            if ($nuevoEstado === 'APROBADO') {
-                $this->adminModel->aprobarProfesional($idProfesional);
-                $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'APROBAR_PROFESIONAL', 'profesionales', $idProfesional);
-            } elseif ($nuevoEstado === 'RECHAZADO') {
-                $this->adminModel->rechazarProfesional($idProfesional);
-                $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'RECHAZAR_PROFESIONAL', 'profesionales', $idProfesional);
+            $doc = $this->panel->revisarDocumento($idDoc, $accion, $obs, $this->idAdmin());
+            $this->auditar('ADMIN_DOC_' . $accion, 'documentos_profesional', $idDoc, ['observacion' => $obs]);
+            if ($accion === 'RECHAZADO') {
+                $this->avisarUsuario((int) $doc['id_usuario'], 'DOCUMENTO_RECHAZADO', 'Un documento fue rechazado: ' . $obs, '/profesional/perfil');
             }
-
-            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-                echo json_encode(['ok' => true]);
-                exit;
-            }
-        } catch (Exception $e) {
-            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
-                http_response_code(400);
-                echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
-                exit;
-            }
+            Flash::set('success', $accion === 'APROBADO' ? 'Documento aprobado.' : 'Documento rechazado.');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] revisarDocumentoTecnico: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo guardar la revisión.');
         }
-
-        header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
-        exit;
+        $this->redirigir($volver);
     }
 
-    public function aprobarProfesional() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
-        }
-        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
+    public function decidirValidacionTecnico()
+    {
+        $this->soloPost('/admin/revisionTecnicos');
+        $idProf = (int) ($_POST['id_profesional'] ?? 0);
+        $accion = (string) ($_POST['decision'] ?? '');
+        $obs    = mb_substr(trim((string) ($_POST['observacion'] ?? '')), 0, 250);
 
         try {
-            $this->adminModel->aprobarProfesional($idProfesional);
-            $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'APROBAR_PROFESIONAL', 'profesionales', $idProfesional);
-        } catch (Exception $e) { }
-
-        header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
-        exit;
-    }
-
-    public function rechazarProfesional() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
+            $t = $this->panel->decidirTecnico($idProf, $accion, $obs);
+            $this->auditar('ADMIN_TECNICO_' . $accion, 'profesionales', $idProf, ['observacion' => $obs]);
+            if ($accion === 'APROBAR') {
+                $this->avisarUsuario((int) $t['id_usuario'], 'PERFIL_APROBADO', '¡Tu perfil fue aprobado! Ya puedes activarte y recibir trabajos.', '/profesional/dashboard');
+                Flash::set('success', 'Técnico aprobado.');
+            } else {
+                $this->avisarUsuario((int) $t['id_usuario'], 'PERFIL_RECHAZADO', 'Tu perfil fue rechazado: ' . $obs, '/profesional/perfil');
+                Flash::set('info', 'Técnico rechazado. Se le avisó el motivo.');
+            }
+            $this->redirigir('/admin/revisionTecnicos');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] decidirValidacionTecnico: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo guardar la decisión.');
         }
-        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
-
-        $this->adminModel->rechazarProfesional($idProfesional);
-        $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'RECHAZAR_PROFESIONAL', 'profesionales', $idProfesional);
-
-        header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
-        exit;
+        $this->redirigir('/admin/revisionTecnico/' . $idProf);
     }
 
-    public function revisarDocumento() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
+    // ===================== PAGOS =====================
+    public function revisionPagos()
+    {
+        $filtro = strtoupper((string) ($_GET['estado'] ?? 'PENDIENTE'));
+        if (!in_array($filtro, ['PENDIENTE', 'CONFIRMADO', 'FALLIDO', 'TODOS'], true)) {
+            $filtro = 'PENDIENTE';
         }
-
-        $idDocumento   = (int) ($_POST['id_documento'] ?? 0);
-        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
-        $decision      = $_POST['decision'] ?? '';
-        $observacion   = trim($_POST['observacion'] ?? '');
-
-        try {
-            $this->adminModel->revisarDocumento($idDocumento, $decision, (int) $_SESSION['user_id'], $observacion ?: null);
-            $this->usuarioModel->auditar(
-                (int) $_SESSION['user_id'],
-                'REVISION_DOCUMENTO_' . $decision,
-                'documentos_profesional',
-                $idDocumento,
-                ['id_profesional' => $idProfesional]
-            );
-        } catch (Exception $e) { }
-
-        header("Location: " . BASE_URL . "/admin/verProfesional/" . $idProfesional);
-        exit;
-    }
-
-    /* ========================================================
-       3. GESTIÓN DE PLANES Y MONETIZACIÓN (SIDEBAR: Planes)
-       ======================================================== */
-    public function planes() {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->query("SELECT * FROM planes_suscripcion ORDER BY id_plan ASC");
-        $planes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $this->view('admin/planes', [
-            'titulo' => 'GEO-PRO | Gestión de Planes y Monetización',
-            'planes' => $planes
+        $this->view('admin/revision_pagos', [
+            'titulo'  => 'FixGeo | Revisar pagos',
+            'pagos'   => $this->panel->pagos($filtro),
+            'resumen' => $this->panel->resumen(),
+            'filtro'  => $filtro,
         ]);
     }
 
-    /* ========================================================
-       4. GESTIÓN COMPLETA DE PROFESIONALES (SIDEBAR: Profesionales)
-       ======================================================== */
-    public function profesionales() {
-        $filtro = $_GET['estado'] ?? 'TODOS';
-        $db = Database::getInstance()->getConnection();
+    public function decidirPagoSuscripcion()
+    {
+        $this->soloPost('/admin/revisionPagos');
+        $idPago = (int) ($_POST['id_transaccion'] ?? 0);
+        $accion = (string) ($_POST['decision'] ?? '');
+        $obs    = mb_substr(trim((string) ($_POST['observacion'] ?? '')), 0, 250);
 
-        $sql = "
-            SELECT p.*, u.nombre, u.apellido, u.correo, u.celular, u.estado AS estado_usuario,
-                   c.nombre_categoria, pl.nombre_plan
-            FROM profesionales p
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            LEFT JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
-        ";
+        try {
+            $t = $this->panel->decidirPago($idPago, $accion, $obs, $this->idAdmin());
+            $this->auditar('ADMIN_PAGO_' . $accion, 'transacciones_suscripcion', $idPago, ['monto' => $t['monto'], 'observacion' => $obs]);
 
-        if ($filtro !== 'TODOS') {
-            $sql .= " WHERE p.estado_validacion = :estado ORDER BY p.id_profesional DESC";
-            $stmt = $db->prepare($sql);
-            $stmt->execute([':estado' => $filtro]);
-        } else {
-            $sql .= " ORDER BY p.id_profesional DESC";
-            $stmt = $db->query($sql);
+            if ($accion === 'CONFIRMAR') {
+                $texto = $t['tipo_transaccion'] === 'PAQUETE_TOKENS'
+                    ? 'Tu pago fue confirmado: se sumaron ' . (int) $t['tokens_comprados'] . ' tokens a tu cuenta.'
+                    : 'Tu pago fue confirmado: tu plan está activo hasta el ' . date('d/m/Y', strtotime($t['nuevo_fin'])) . '.';
+                $this->avisarUsuario((int) $t['id_usuario'], 'PAGO_CONFIRMADO', $texto, '/profesional/comprarTokens');
+                Flash::set('success', 'Pago confirmado y aplicado a la cuenta del técnico.');
+            } else {
+                $this->avisarUsuario((int) $t['id_usuario'], 'PAGO_RECHAZADO', 'Tu pago fue rechazado: ' . $obs, '/profesional/comprarTokens');
+                Flash::set('info', 'Pago rechazado. Se le avisó el motivo al técnico.');
+            }
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] decidirPagoSuscripcion: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo procesar el pago. No se aplicó ningún cambio.');
         }
-
-        $profesionales = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $this->view('admin/profesionales', [
-            'titulo'        => 'GEO-PRO | Control de Profesionales',
-            'profesionales' => $profesionales,
-            'filtroActual'  => $filtro
-        ]);
+        $this->redirigir('/admin/revisionPagos');
     }
 
-    /* ========================================================
-       5. CONTROL Y GESTIÓN DE CLIENTES (SIDEBAR: Clientes)
-       ======================================================== */
-    public function clientes() {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->query("
-            SELECT c.id_cliente, c.zona, c.direccion_referencia,
-                   u.id_usuario, u.nombre, u.apellido, u.correo, u.celular, u.estado, u.fecha_registro,
-                   (SELECT COUNT(*) FROM solicitudes_servicio s WHERE s.id_cliente = c.id_cliente) AS total_pedidos
-            FROM clientes c
-            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario
-            ORDER BY c.id_cliente DESC
-        ");
-        $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // ===================== ARCHIVOS PRIVADOS (solo administración) =====================
+    public function verDocumento($idDocumento = 0)
+    {
+        $doc = $this->panel->documentoPorId((int) $idDocumento);
+        if (!$doc) {
+            http_response_code(404);
+            exit('Documento no encontrado.');
+        }
+        $this->servirArchivoPrivado('documentos', (string) $doc['archivo_url']);
+    }
 
+    public function verComprobante($idTransaccion = 0)
+    {
+        $archivo = $this->panel->comprobante((int) $idTransaccion);
+        if (!$archivo) {
+            http_response_code(404);
+            exit('Comprobante no encontrado.');
+        }
+        $this->servirArchivoPrivado('comprobantes', $archivo);
+    }
+
+    // ===================== CLIENTES =====================
+    public function clientes()
+    {
+        $buscar = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 60);
         $this->view('admin/clientes', [
-            'titulo'   => 'GEO-PRO | Control de Clientes',
-            'clientes' => $clientes
+            'titulo'   => 'FixGeo | Clientes',
+            'clientes' => $this->panel->clientes($buscar),
+            'buscar'   => $buscar,
         ]);
     }
 
-    // Acción para Bloquear / Activar usuarios (Super Admin)
-    public function toggleEstadoUsuario() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
-        }
-
+    public function cambiarEstadoCliente()
+    {
+        $this->soloPost('/admin/clientes');
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);
-        $redireccion = $_POST['redirect_to'] ?? '/admin/dashboard';
-
-        $db = Database::getInstance()->getConnection();
-        $stmtActual = $db->prepare("SELECT estado FROM usuarios WHERE id_usuario = :id");
-        $stmtActual->execute([':id' => $idUsuario]);
-        $estadoActual = $stmtActual->fetchColumn();
-
-        if ($estadoActual) {
-            $nuevoEstado = ($estadoActual === 'ACTIVO') ? 'BLOQUEADO' : 'ACTIVO';
-            $stmtUpdate = $db->prepare("UPDATE usuarios SET estado = :nuevo WHERE id_usuario = :id");
-            $stmtUpdate->execute([':nuevo' => $nuevoEstado, ':id' => $idUsuario]);
-
-            $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CAMBIO_ESTADO_USUARIO_' . $nuevoEstado, 'usuarios', $idUsuario);
-        }
-
-        header("Location: " . BASE_URL . $redireccion);
-        exit;
-    }
-
-    /* ========================================================
-       6. REPORTES GENERALES Y FINANCIEROS (SIDEBAR: Reportes)
-       ======================================================== */
-    public function reportes() {
-        // Obtenemos los reportes reales de la base de datos
-        $financiero = $this->adminModel->reporteFinancieroMes();
-        $demanda = $this->adminModel->reporteDemandaCategorias();
-        $topProfesionales = $this->adminModel->reporteTopProfesionales();
-
-        $this->view('admin/reportes', [
-            'titulo'           => 'GEO-PRO | Reportes y Analíticas',
-            'financiero'       => $financiero,
-            'demanda'          => $demanda,
-            'topProfesionales' => $topProfesionales
-        ]);
-    }
-
-    /* ========================================================
-       7. PAGOS, TOKENS Y MEMBRESÍAS (SIDEBAR: Pagos QR)
-       ======================================================== */
-    public function pagos() {
-        require_once "../app/models/Membresia.php";
-        $membresiaModel = new Membresia();
-        $this->view('admin/pagos', [
-            'titulo' => 'GEO-PRO | Pagos Pendientes',
-            'pagos'  => $membresiaModel->listarTodasTransacciones()
-        ]);
-    }
-
-    public function confirmarPago() {
-        require_once "../app/models/Membresia.php";
-        $membresiaModel = new Membresia();
-        $id = (int) ($_POST['id_transaccion'] ?? 0);
+        $estado    = (string) ($_POST['estado'] ?? '');
         try {
-            $membresiaModel->confirmarTransaccion($id);
-            $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CONFIRMAR_PAGO', 'transacciones_suscripcion', $id);
-
-            require_once "../app/models/Notificacion.php";
-            $notifModel = new Notificacion();
-            $db = Database::getInstance()->getConnection();
-            $stmtProf = $db->prepare("
-                SELECT u.id_usuario FROM transacciones_suscripcion t
-                INNER JOIN profesionales p ON t.id_profesional = p.id_profesional
-                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-                WHERE t.id_transaccion = :id
-            ");
-            $stmtProf->execute([':id' => $id]);
-            $idUsuarioProf = $stmtProf->fetchColumn();
-
-            if ($idUsuarioProf) {
-                $notifModel->crear((int) $idUsuarioProf, 'PAGO_CONFIRMADO', 'Tu pago fue confirmado. ¡Membresía activada!', BASE_URL . '/profesional/dashboard');
-            }
-        } catch (Exception $e) {
-            die("<h1>Error al confirmar el pago:</h1><p>" . $e->getMessage() . "</p><br><p>Por favor revisa la base de datos o contacta a soporte.</p>");
+            $this->panel->cambiarEstadoUsuario($idUsuario, $estado, $this->idAdmin());
+            $this->auditar('ADMIN_USUARIO_' . $estado, 'usuarios', $idUsuario);
+            Flash::set('success', $estado === 'BLOQUEADO' ? 'Cuenta bloqueada: ya no puede ingresar.' : 'Cuenta activada.');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] cambiarEstadoCliente: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo cambiar el estado.');
         }
-
-        header("Location: " . BASE_URL . "/admin/pagos");
-        exit;
+        $this->redirigir('/admin/clientes');
     }
 
-    public function rechazarPago() {
-        require_once "../app/models/Membresia.php";
-        $membresiaModel = new Membresia();
-        $id = (int) ($_POST['id_transaccion'] ?? 0);
-        $membresiaModel->rechazarTransaccion($id);
-        $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'RECHAZAR_PAGO', 'transacciones_suscripcion', $id);
-
-        header("Location: " . BASE_URL . "/admin/pagos");
-        exit;
-    }
-
-    /* ========================================================
-       8. LOGS Y AUDITORÍA DEL SISTEMA (SIDEBAR: Auditoría)
-       ======================================================== */
-    public function auditoria() {
-        $this->view('admin/auditoria', [
-            'titulo' => 'GEO-PRO | Auditoría del Sistema',
-            'logs'   => $this->adminModel->auditoriaReciente(50)
-        ]);
-    }
-
-    /* ========================================================
-       9. GESTIÓN DE CATEGORÍAS (SIDEBAR: Categorías)
-       ======================================================== */
-    public function categorias() {
+    // ===================== CATEGORÍAS =====================
+    public function categorias()
+    {
         $this->view('admin/categorias', [
-            'titulo'     => 'GEO-PRO | Gestión de Categorías',
-            'categorias' => $this->adminModel->listarCategorias()
+            'titulo'     => 'FixGeo | Categorías',
+            'categorias' => $this->panel->categorias(),
         ]);
     }
 
-    public function crearCategoria() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/categorias");
-            exit;
-        }
-        try {
-            file_put_contents(__DIR__ . '/../../public/debug_error.log', date('Y-m-d H:i:s') . " - POST DATA: " . json_encode($_POST) . "\n", FILE_APPEND);
-            $this->adminModel->crearCategoria(
-                $_POST['nombre_categoria'] ?? '',
-                $_POST['tipo_clasificacion'] ?? 'AMBOS',
-                $_POST['icono_fa'] ?? '',
-                $_POST['descripcion'] ?? null
-            );
-            $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CREAR_CATEGORIA', 'categorias', null);
-        } catch (Exception $e) {
-            file_put_contents(__DIR__ . '/../../public/debug_error.log', date('Y-m-d H:i:s') . " - " . $e->getMessage() . "\n", FILE_APPEND);
-            $err = urlencode($e->getMessage());
-            header("Location: " . BASE_URL . "/admin/categorias?error=" . $err);
-            exit;
-        }
-
-        header("Location: " . BASE_URL . "/admin/categorias?success=Categoria+creada");
-        exit;
-    }
-
-    public function toggleCategoria() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/categorias");
-            exit;
-        }
+    public function guardarCategoria()
+    {
+        $this->soloPost('/admin/categorias');
         $id = (int) ($_POST['id_categoria'] ?? 0);
-        $this->adminModel->toggleCategoria($id);
-        $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'TOGGLE_CATEGORIA', 'categorias', $id);
-
-        header("Location: " . BASE_URL . "/admin/categorias");
-        exit;
-    }/* ========================================================
-       ACTUALIZAR PLANES DE SUSCRIPCIÓN (A prueba de fallos)
-       ======================================================== */
-    /* ========================================================
-       ACTUALIZAR PLANES DE SUSCRIPCIÓN (A prueba de balas)
-       ======================================================== */
-    public function actualizarPlan() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/admin/planes");
-            exit;
+        try {
+            $this->panel->guardarCategoria($id, [
+                'nombre'      => (string) ($_POST['nombre'] ?? ''),
+                'descripcion' => (string) ($_POST['descripcion'] ?? ''),
+                'tipo'        => (string) ($_POST['tipo'] ?? ''),
+                'icono'       => (string) ($_POST['icono'] ?? ''),
+            ]);
+            $this->auditar($id > 0 ? 'ADMIN_CATEGORIA_EDITADA' : 'ADMIN_CATEGORIA_CREADA', 'categorias', $id > 0 ? $id : null, ['nombre' => $_POST['nombre'] ?? '']);
+            Flash::set('success', $id > 0 ? 'Categoría actualizada.' : 'Categoría creada.');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] guardarCategoria: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo guardar la categoría.');
         }
-        
-        $idPlan = (int) ($_POST['id_plan'] ?? 0);
-        $precio = (float) ($_POST['precio'] ?? 0);
-        $tokens = (int) ($_POST['tokens'] ?? 0);
+        $this->redirigir('/admin/categorias');
+    }
 
-        if ($idPlan > 0) {
-            try {
-                $db = Database::getInstance()->getConnection();
-                
-                // Detecta dinámicamente cómo se llaman tus columnas en la BD
-                $columnas = $db->query("SHOW COLUMNS FROM planes_suscripcion")->fetchAll(PDO::FETCH_COLUMN);
-                $colPrecio = in_array('precio', $columnas) ? 'precio' : 'precio';
-                $colTokens = in_array('tokens_otorgados', $columnas) ? 'tokens_otorgados' : 'tokens_otorgados';
-
-                // Actualizamos usando el ID exacto
-                $sql = "UPDATE planes_suscripcion SET {$colPrecio} = :precio, {$colTokens} = :tokens WHERE id_plan = :id";
-                $stmt = $db->prepare($sql);
-                $stmt->execute([
-                    ':precio' => $precio,
-                    ':tokens' => $tokens,
-                    ':id' => $idPlan
-                ]);
-
-                $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'ACTUALIZAR_PLAN_' . $idPlan, 'planes_suscripcion', $idPlan);
-            } catch (Exception $e) { 
-                // Si algo falla, esta línea te mostrará el error exacto en pantalla
-                die("Error de Base de Datos: " . $e->getMessage()); 
-            }
+    public function cambiarEstadoCategoria()
+    {
+        $this->soloPost('/admin/categorias');
+        $id     = (int) ($_POST['id_categoria'] ?? 0);
+        $estado = (int) ($_POST['estado'] ?? 0);
+        try {
+            $this->panel->cambiarEstadoCategoria($id, $estado);
+            $this->auditar('ADMIN_CATEGORIA_ESTADO', 'categorias', $id, ['estado' => $estado]);
+            Flash::set('success', $estado === 1 ? 'Categoría activada.' : 'Categoría desactivada: ya no aparece para los clientes.');
+        } catch (Throwable $e) {
+            error_log('[FixGeo] cambiarEstadoCategoria: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo cambiar el estado.');
         }
+        $this->redirigir('/admin/categorias');
+    }
 
-        header("Location: " . BASE_URL . "/admin/planes");
+    // ===================== PLANES (solo SUPER_ADMIN) =====================
+    public function planes()
+    {
+        $this->soloSuperAdmin();
+        $this->view('admin/planes', [
+            'titulo' => 'FixGeo | Planes',
+            'planes' => $this->panel->planes(),
+        ]);
+    }
+
+    public function guardarPlan()
+    {
+        $this->soloSuperAdmin();
+        $this->soloPost('/admin/planes');
+        $id = (int) ($_POST['id_plan'] ?? 0);
+        try {
+           
+            $this->panel->guardarPlan($id, [
+                'precio'      => $_POST['precio'] ?? 0,
+                'tokens'      => $_POST['tokens'] ?? 0,
+                'descripcion' => (string) ($_POST['descripcion'] ?? ''),
+                'estado'      => $_POST['estado'] ?? 1,
+                'retraso'     => $_POST['retraso'] ?? 0,
+            ]);
+
+            $this->auditar('ADMIN_PLAN_EDITADO', 'planes_suscripcion', $id, ['precio' => $_POST['precio'] ?? null, 'tokens' => $_POST['tokens'] ?? null]);
+            Flash::set('success', 'Plan actualizado.');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] guardarPlan: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo guardar el plan.');
+        }
+        $this->redirigir('/admin/planes');
+    }
+
+    // ===================== REPORTES =====================
+    public function reportes()
+    {
+        $this->view('admin/reportes', [
+            'titulo'      => 'FixGeo | Reportes',
+            'meses'       => $this->panel->reporteMensual(6),
+            'top'         => $this->panel->topTecnicos(5),
+            'porCategoria' => $this->panel->solicitudesPorCategoria(),
+        ]);
+    }
+
+    // ===================== AUDITORÍA (solo SUPER_ADMIN) =====================
+    public function auditoria()
+    {
+        $this->soloSuperAdmin();
+        $buscar = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 60);
+        $this->view('admin/auditoria', [
+            'titulo'  => 'FixGeo | Auditoría',
+            'eventos' => $this->panel->auditoria($buscar),
+            'buscar'  => $buscar,
+        ]);
+    }
+
+
+    // Enlaces antiguos (las notificaciones de la base de datos todavía apuntan a estas rutas)
+    public function profesionales()
+    {
+        $this->redirigir('/admin/revisionTecnicos');
+    }
+
+    public function pagos()
+    {
+        $this->redirigir('/admin/revisionPagos');
+    }
+
+    public function verProfesional($id = 0)
+    {
+        $this->redirigir('/admin/revisionTecnico/' . (int) $id);
+    }
+
+
+
+
+
+
+    // ===================== INFORME DEL SISTEMA (PDF por impresión + CSV) =====================
+    private function rangoInforme(): array
+    {
+        $valido = fn($f) => (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $f) && strtotime((string) $f) !== false;
+        $desde  = $valido($_GET['desde'] ?? '') ? (string) $_GET['desde'] : date('Y-m-01');
+        $hasta  = $valido($_GET['hasta'] ?? '') ? (string) $_GET['hasta'] : date('Y-m-d');
+        if ($desde > $hasta) {
+            [$desde, $hasta] = [$hasta, $desde];
+        }
+        if (strtotime($hasta) - strtotime($desde) > 366 * 86400) {          // máximo 1 año por informe
+            $desde = date('Y-m-d', strtotime($hasta . ' -366 days'));
+        }
+        return [$desde, $hasta];
+    }
+
+    public function informe()
+    {
+        [$desde, $hasta] = $this->rangoInforme();
+        $idCategoria = max(0, (int) ($_GET['categoria'] ?? 0));
+        $this->auditar('ADMIN_INFORME_GENERADO', 'informes', null, ['desde' => $desde, 'hasta' => $hasta, 'categoria' => $idCategoria]);
+
+        $this->view('admin/informe', [
+            'titulo'      => 'FixGeo | Informe del sistema',
+            'desde'       => $desde,
+            'hasta'       => $hasta,
+            'idCategoria' => $idCategoria,
+            'categorias'  => $this->panel->categorias(),
+            'datos'       => $this->panel->informe($desde, $hasta, $idCategoria),
+            'generadoPor' => (string) ($_SESSION['user_nombre'] ?? ''),
+        ]);
+    }
+
+    public function informeCsv()
+    {
+        [$desde, $hasta] = $this->rangoInforme();
+        $idCategoria = max(0, (int) ($_GET['categoria'] ?? 0));
+        $tipo  = (($_GET['tipo'] ?? '') === 'pagos') ? 'pagos' : 'solicitudes';
+        $filas = $tipo === 'pagos'
+            ? $this->panel->exportarPagos($desde, $hasta, $idCategoria)
+            : $this->panel->exportarSolicitudes($desde, $hasta, $idCategoria);
+        $this->auditar('ADMIN_EXPORTAR_' . strtoupper($tipo), 'informes', null, ['desde' => $desde, 'hasta' => $hasta, 'categoria' => $idCategoria, 'filas' => count($filas)]);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="fixgeo_' . $tipo . '_' . $desde . '_' . $hasta . '.csv"');
+        header('Cache-Control: private, no-store');
+        $salida = fopen('php://output', 'w');
+        fwrite($salida, "\xEF\xBB\xBF");
+        if ($filas) {
+            fputcsv($salida, array_keys($filas[0]), ';');
+        }
+        foreach ($filas as $fila) {
+            fputcsv($salida, array_map([$this, 'celdaCsv'], $fila), ';');
+        }
+        fclose($salida);
         exit;
     }
+    /** Evita que Excel ejecute fórmulas escondidas en textos que empiezan con = + - @ */
+    private function celdaCsv($valor): string
+    {
+        $valor = (string) $valor;
+        return preg_match('/^[=+\-@\t\r]/', $valor) ? "'" . $valor : $valor;
+    }
+
+
+
+
+
+
+
+
     
 }

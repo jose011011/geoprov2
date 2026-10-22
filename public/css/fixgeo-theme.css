@@ -1,0 +1,49 @@
+:root {
+  --fx-white: #ffffff;
+  --fx-bg: #f6f8fc;
+  --fx-ink: #0f172a;
+  --fx-muted: #5b6b86;
+  --fx-line: #e3e8f2;
+  --fx-blue: #1d3fb4;
+  --fx-blue-dark: #14307f;
+  --fx-sky: #38bdf8;
+  --fx-cyan: #22e6f8;
+  --fx-violet: #a07ae8;
+  --fx-gradient: linear-gradient(135deg, var(--fx-cyan), var(--fx-violet));
+  --fx-radius: 16px;
+  --fx-shadow: 0 10px 30px rgba(15, 23, 42, .08);
+
+  --bs-primary: var(--fx-blue);
+  --bs-primary-rgb: 29, 63, 180;
+  --bs-link-color: var(--fx-blue);
+  --bs-body-color: var(--fx-ink);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--fx-blue);
+  --bs-btn-border-color: var(--fx-blue);
+  --bs-btn-hover-bg: var(--fx-blue-dark);
+  --bs-btn-hover-border-color: var(--fx-blue-dark);
+  --bs-btn-active-bg: var(--fx-blue-dark);
+  --bs-btn-focus-shadow-rgb: 29, 63, 180;
+  font-weight: 600;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--fx-blue);
+  --bs-btn-border-color: var(--fx-blue);
+  --bs-btn-hover-bg: var(--fx-blue);
+  --bs-btn-hover-border-color: var(--fx-blue);
+  font-weight: 600;
+}
+.btn-fx-gradient {
+  background: var(--fx-gradient);
+  color: var(--fx-ink);
+  border: 0;
+  font-weight: 700;
+}
+.btn-fx-gradient:hover { filter: brightness(1.05); color: var(--fx-ink); }
+.card { border-color: var(--fx-line); border-radius: var(--fx-radius); }
+.form-control:focus, .form-select:focus {
+  border-color: var(--fx-sky);
+  box-shadow: 0 0 0 .25rem rgba(56, 189, 248, .25);
+}

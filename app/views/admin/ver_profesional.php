@@ -216,6 +216,14 @@
                             <p class="text-muted small mb-0">Revisa los documentos. Si apruebas, el profesional aparecerá en el mapa.</p>
                         </div>
                         <div class="d-flex gap-2">
+                            <!-- Formularios ocultos -->
+                            <form id="formRechazar" action="<?= BASE_URL ?>/admin/cambiarEstadoProfesional/<?= $perfil['id_profesional'] ?? 0 ?>" method="POST" style="display:none;">
+                                <input type="hidden" name="nuevo_estado" value="RECHAZADO">
+                            </form>
+                            <form id="formAprobar" action="<?= BASE_URL ?>/admin/cambiarEstadoProfesional/<?= $perfil['id_profesional'] ?? 0 ?>" method="POST" style="display:none;">
+                                <input type="hidden" name="nuevo_estado" value="APROBADO">
+                            </form>
+                            
                             <!-- Botones que abren el modal personalizado -->
                             <button type="button" class="btn btn-danger fw-bold" onclick="abrirModal('RECHAZAR')">
                                 <i class="fa-solid fa-xmark me-1"></i> Rechazar
@@ -244,13 +252,9 @@
         <div class="modal-icon" id="modalIcon"></div>
         <h3 class="modal-title" id="modalTitle">Confirmación</h3>
         <p class="modal-text" id="modalText">¿Estás seguro de realizar esta acción?</p>
-        
-        <input type="hidden" id="idProfesional" value="<?= htmlspecialchars((string) ($perfil['id_profesional'] ?? 0)) ?>">
-        <input type="hidden" id="nuevo_estado" value="">
-
         <div class="modal-actions">
-            <button type="button" class="modal-btn cancel" onclick="cerrarModal()">Cancelar</button>
-            <button type="button" class="modal-btn" id="modalBtnConfirmar">Si, confirmar</button>
+            <button class="modal-btn cancel" onclick="cerrarModal()">Cancelar</button>
+            <button class="modal-btn" id="modalBtnConfirmar">Si, confirmar</button>
         </div>
     </div>
 </div>
@@ -267,65 +271,48 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // Lógica del Modal Personalizado
-document.addEventListener("DOMContentLoaded", function() {
-    const modalOverlay = document.getElementById('customModalOverlay');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalText = document.getElementById('modalText');
-    const modalBtnConfirmar = document.getElementById('modalBtnConfirmar');
-    const inputNuevoEstado = document.getElementById('nuevo_estado');
-    const inputIdProfesional = document.getElementById('idProfesional');
+const modalOverlay = document.getElementById('customModalOverlay');
+const modalIcon = document.getElementById('modalIcon');
+const modalTitle = document.getElementById('modalTitle');
+const modalText = document.getElementById('modalText');
+const modalBtnConfirmar = document.getElementById('modalBtnConfirmar');
 
-    if (!modalBtnConfirmar) { 
-        console.error('No se encontró el botón modalBtnConfirmar'); 
-        return; 
+let formularioActivo = null;
+
+function abrirModal(accion) {
+    if (accion === 'APROBAR') {
+        modalIcon.className = 'modal-icon success';
+        modalIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+        modalTitle.textContent = 'Aprobar Profesional';
+        modalText.textContent = 'Al aprobar, este perfil será visible en el mapa y podrá recibir solicitudes de trabajo en La Paz.';
+        modalBtnConfirmar.className = 'modal-btn confirm-success';
+        modalBtnConfirmar.textContent = 'Aprobar Perfil';
+        formularioActivo = document.getElementById('formAprobar');
+    } else if (accion === 'RECHAZAR') {
+        modalIcon.className = 'modal-icon danger';
+        modalIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        modalTitle.textContent = 'Rechazar Profesional';
+        modalText.textContent = 'Esta acción bloqueará al profesional permanentemente en el sistema. ¿Estás seguro?';
+        modalBtnConfirmar.className = 'modal-btn confirm-danger';
+        modalBtnConfirmar.textContent = 'Rechazar Definitivamente';
+        formularioActivo = document.getElementById('formRechazar');
     }
+    modalOverlay.classList.add('active');
+}
 
-    window.abrirModal = function(accion) {
-        if (accion === 'APROBAR') {
-            modalIcon.className = 'modal-icon success';
-            modalIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
-            modalTitle.textContent = 'Aprobar Profesional';
-            modalText.textContent = 'Al aprobar, este perfil será visible en el mapa y podrá recibir solicitudes de trabajo en La Paz.';
-            modalBtnConfirmar.className = 'modal-btn confirm-success';
-            modalBtnConfirmar.textContent = 'Aprobar Perfil';
-            inputNuevoEstado.value = 'APROBADO';
-        } else if (accion === 'RECHAZAR') {
-            modalIcon.className = 'modal-icon danger';
-            modalIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-            modalTitle.textContent = 'Rechazar Profesional';
-            modalText.textContent = 'Esta acción bloqueará al profesional permanentemente en el sistema. ¿Estás seguro?';
-            modalBtnConfirmar.className = 'modal-btn confirm-danger';
-            modalBtnConfirmar.textContent = 'Rechazar Definitivamente';
-            inputNuevoEstado.value = 'RECHAZADO';
-        }
-        modalOverlay.classList.add('active');
-    };
+function cerrarModal() {
+    modalOverlay.classList.remove('active');
+    formularioActivo = null;
+}
 
-    window.cerrarModal = function() {
-        modalOverlay.classList.remove('active');
-    };
-
-    modalBtnConfirmar.addEventListener('click', async function(e) {
-        e.preventDefault();
-        
-        const id = inputIdProfesional.value;
-        const estado = inputNuevoEstado.value;
-        console.log('Enviando:', id, estado);
-
-        if (!id || !estado) return;
-
+modalBtnConfirmar.addEventListener('click', async function() {
+    if (formularioActivo) {
         modalBtnConfirmar.disabled = true;
         modalBtnConfirmar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
         
         try {
-            const formData = new FormData();
-            formData.append('id_profesional', id);
-            formData.append('nuevo_estado', estado);
-
-            const url = '<?= BASE_URL ?>/admin/cambiarEstadoProfesional/' + id;
-
-            const response = await fetch(url, {
+            const formData = new FormData(formularioActivo);
+            const response = await fetch(formularioActivo.action, {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -334,20 +321,21 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             
             if (response.ok) {
+                // El backend redirige o devuelve 200, recargamos para ver los cambios
                 window.location.reload();
             } else {
                 const resData = await response.json();
                 alert('No se pudo completar: ' + (resData.error || 'Error desconocido'));
                 modalBtnConfirmar.disabled = false;
-                modalBtnConfirmar.textContent = estado === 'APROBADO' ? 'Aprobar Perfil' : 'Rechazar Definitivamente';
+                modalBtnConfirmar.textContent = 'Reintentar';
             }
         } catch (error) {
             console.error('Fetch error:', error);
             alert('Error de conexión al enviar la solicitud.');
             modalBtnConfirmar.disabled = false;
-            modalBtnConfirmar.textContent = estado === 'APROBADO' ? 'Aprobar Perfil' : 'Rechazar Definitivamente';
+            modalBtnConfirmar.textContent = 'Reintentar';
         }
-    });
+    }
 });
 </script>
 

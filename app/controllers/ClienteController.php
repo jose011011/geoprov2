@@ -1,504 +1,331 @@
 <?php
-class ClienteController extends Controller {
-    private Cliente $clienteModel;
+class ClienteController extends Controller
+{
+    private ClientePanel $panel;
 
-    public function __construct() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
-        }
-
-        // Solo CLIENTE (4) o PROFESIONAL (3, puede contratar a otro colega)
-        if (!in_array((int) $_SESSION['role_id'], [3, 4], true)) {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
-        }
-
-        $this->clienteModel = new Cliente();
+    public function __construct()
+    {
+        // Cliente (4) o profesional (3) que contrata a un colega
+        $this->requiereSesion([3, 4]);
+        $this->panel = new ClientePanel();
     }
 
-    public function dashboard() {
-        $categorias = $this->clienteModel->obtenerCategoriasActivas();
-        $cliente = $this->clienteModel->buscarPorUsuario((int) $_SESSION['user_id']);
+    private function perfilActual(): ?array
+    {
+        return $this->panel->asegurarPerfil((int) $_SESSION['user_id'], (int) $_SESSION['role_id']);
+    }
 
-        if (!$cliente && (int) $_SESSION['role_id'] === 3) {
-            $cliente = $this->clienteModel->crearDesdeProfesional((int) $_SESSION['user_id']);
-        }
-
-        $stats = null;
-        $solicitudActiva = null;
-        if ($cliente) {
-            $stats = $this->clienteModel->obtenerEstadisticas((int) $cliente['id_cliente']);
-            $solicitudActiva = $this->clienteModel->obtenerSolicitudActivaReciente((int) $cliente['id_cliente']);
-        }
+    // ================= INICIO =================
+     public function dashboard()
+    {
+        $cliente   = $this->perfilActual();
+        $idCliente = $cliente ? (int) $cliente['id_cliente'] : 0;
 
         $this->view('cliente/dashboard', [
-            'titulo'          => 'GEO-PRO | Buscar Servicios',
-            'categorias'      => $categorias,
+            'titulo'          => 'FixGeo | Inicio',
+            'categorias'      => $this->panel->categoriasActivas(),
             'cliente'         => $cliente,
-            'stats'           => $stats,
-            'solicitudActiva' => $solicitudActiva
+            'stats'           => $idCliente ? $this->panel->estadisticas($idCliente) : null,
+            'solicitudActiva' => $idCliente ? $this->panel->solicitudActiva($idCliente) : null,
+            'favoritos'       => $idCliente ? array_slice($this->panel->favoritos($idCliente), 0, 4) : [],
+            'recientes'       => $idCliente ? array_slice($this->panel->historial($idCliente), 0, 3) : [],
         ]);
     }
 
-    /* ========================================================
-       2. MÓDULO: BÚSQUEDA Y ASIGNACIÓN (Error SQL Arreglado)
-       ======================================================== */
-    public function buscarEspecialista() {
-        $idUsuario = (int) $_SESSION['user_id'];
-        $descripcionProblema = $_POST['descripcion'] ?? ''; 
-        $idCategoriaDirecta = $_GET['cat'] ?? null; 
-        $idProfSeleccionado = (int) ($_GET['id_prof'] ?? 0);
-
-        $db = Database::getInstance()->getConnection();
+    // ================= BÚSQUEDA (asistente, categoría o técnico elegido) =================
+    public function buscarEspecialista()
         
-        $categorias = $db->query("SELECT * FROM categorias WHERE estado = 1")->fetchAll(PDO::FETCH_ASSOC);
+    {
+        $this->exigirCalificacion();
+        $idUsuario   = (int) $_SESSION['user_id'];
+        $descripcion = mb_substr(trim((string) ($_POST['descripcion'] ?? '')), 0, 1000);
+        $idCat       = (int) ($_GET['cat'] ?? 0);
+        $idProf      = (int) ($_GET['id_prof'] ?? 0);
 
-        $categoriaDetectada = null;
-        $esBusquedaIA = false; 
+        $categorias = $this->panel->categoriasActivas();
+        $categoria  = null;
+        $esIA       = false;
 
-        if ($idProfSeleccionado > 0) {
-            // Si viene del catálogo manual, obtenemos la categoría del profesional directamente
-            $stmt = $db->prepare("SELECT c.* FROM categorias c INNER JOIN profesionales p ON c.id_categoria = p.id_categoria WHERE p.id_profesional = :id");
-            $stmt->execute([':id' => $idProfSeleccionado]);
-            $categoriaDetectada = $stmt->fetch(PDO::FETCH_ASSOC);
-        } else if ($idCategoriaDirecta) {
-            $stmt = $db->prepare("SELECT * FROM categorias WHERE id_categoria = :id");
-            $stmt->execute([':id' => $idCategoriaDirecta]);
-            $categoriaDetectada = $stmt->fetch(PDO::FETCH_ASSOC);
-        } else if (!empty($descripcionProblema)) {
-            $esBusquedaIA = true;
-            
-            // SIMULADOR DE LLM MEJORADO: Detección inteligente con tolerancia a errores (Typos y Sinónimos)
-            $unwanted_array = ['Á'=>'A', 'É'=>'E', 'Í'=>'I', 'Ó'=>'O', 'Ú'=>'U', 'Ñ'=>'N', 'á'=>'a', 'é'=>'e', 'í'=>'i', 'ó'=>'o', 'ú'=>'u', 'ñ'=>'n'];
-            
-            // 1. Limpieza de texto (Normalización)
-            $descLimpia = strtolower(strtr($descripcionProblema, $unwanted_array));
-            $descLimpia = preg_replace('/[^a-z0-9\s]/', '', $descLimpia);
-            $palabrasCliente = explode(' ', $descLimpia); // Tokenización
-            
-            // 2. Base de conocimientos (Diccionario de Sinónimos)
-            $diccionario = [
-                'electr' => ['luz', 'lus', 'luces', 'electric', 'elec', 'chipa', 'chispa', 'enchufe', 'enchuf', 'cable', 'cables', 'cortocircuito', 'foco', 'focos', 'iluminacion', 'apagon', 'quemado', 'quemo', 'electrocuta', 'corriente', 'energia'],
-                'plomer' => ['agua', 'ava', 'tubo', 'tuberia', 'fuga', 'gotea', 'gotera', 'inodoro', 'banio', 'bano', 'cano', 'caneria', 'pileta', 'lavamano', 'ducha', 'desague', 'inunda', 'humedad', 'plomero', 'plomo', 'gas', 'calefon'],
-                'jardin' => ['jardin', 'pasto', 'cesped', 'cespe', 'arbol', 'arboles', 'planta', 'plantas', 'tierra', 'hojas', 'poda', 'podar', 'regar', 'riego', 'maleza', 'flores', 'flor'],
-                'cerraj' => ['llave', 'yave', 'yaves', 'chapa', 'puerta', 'cerrojo', 'candado', 'trancado', 'tranco', 'abrir', 'cerrado', 'cerrajero'],
-                'alban'  => ['pared', 'ladrillo', 'cemento', 'techo', 'construc', 'piso', 'ceramica', 'azulejo', 'grieta', 'rajadura', 'pintura', 'pintar', 'obra', 'albanil', 'muralla']
-            ];
-
-            $mejorCoincidencia = null;
-            $maxPuntaje = 0;
-
-            // 3. Motor de Inferencia (Fuzzy Matching con Distancia de Levenshtein)
-            foreach ($categorias as $cat) {
-                $nombreCat = strtolower(strtr($cat['nombre_categoria'], $unwanted_array));
-                $puntaje = 0;
-                
-                $palabrasClave = [$nombreCat]; // Iniciamos con el nombre real de la categoría
-                foreach ($diccionario as $llaveDic => $palabras) {
-                    if (str_contains($nombreCat, $llaveDic)) {
-                        $palabrasClave = array_merge($palabrasClave, $palabras);
-                        break;
-                    }
-                }
-
-                foreach ($palabrasCliente as $palabra) {
-                    if (strlen($palabra) < 3) continue; // Ignorar conectores cortos (de, la, el)
-                    
-                    foreach ($palabrasClave as $clave) {
-                        // Coincidencia exacta o contenida (ej: "enchufes" contiene "enchuf")
-                        if (str_contains($palabra, $clave) || str_contains($clave, $palabra)) {
-                            $puntaje += 10;
-                        } else {
-                            // Algoritmo Levenshtein: Calcula cuántas letras hay de diferencia (Typos)
-                            // Si escribe "luses" en vez de "luces", la distancia es 1.
-                            $distancia = levenshtein($palabra, $clave);
-                            if ($distancia === 1 || ($distancia === 2 && strlen($clave) >= 5)) {
-                                $puntaje += 5; // Suma puntos si es un error ortográfico muy parecido
-                            }
-                        }
-                    }
-                }
-                
-                if ($puntaje > $maxPuntaje) {
-                    $maxPuntaje = $puntaje;
-                    $mejorCoincidencia = $cat;
-                }
-            }
-            
-            // Si el modelo no logra entender (puntaje 0), devuelve la primera categoría por defecto
-            $categoriaDetectada = ($mejorCoincidencia) ? $mejorCoincidencia : (count($categorias) > 0 ? $categorias[0] : null);
+        if ($idProf > 0) {
+            $categoria = $this->panel->categoriaDeProfesional($idProf);
+        } elseif ($idCat > 0) {
+            $categoria = $this->panel->categoriaPorId($idCat);
+        } elseif ($descripcion !== '') {
+            $esIA      = true;
+            $categoria = Asistente::detectarCategoria($descripcion, $categorias);
+        } else {
+            Flash::set('warning', 'Cuéntanos qué necesitas arreglar o elige una categoría.');
+            $this->redirigir('/cliente/dashboard');
         }
-
-        $listaProfesionales = [];
-        if ($categoriaDetectada) {
-            // ERROR ARREGLADO: Ahora usamos :id_usuario_fav y :id_usuario_propio para que PDO no se confunda
-            $stmtProf = $db->prepare("
-                SELECT p.id_profesional, u.nombre, u.apellido,
-                       pl.nombre_plan, pl.posicionamiento_destacado,
-                       p.descripcion_servicio, p.tarifa_base,
-                       COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas,
-                       (SELECT COUNT(*) FROM clientes_favoritos cf 
-                        INNER JOIN clientes c ON cf.id_cliente = c.id_cliente 
-                        WHERE cf.id_profesional = p.id_profesional AND c.id_usuario = :id_usuario_fav) as es_favorito
-                FROM profesionales p
-                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-                INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
-                LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
-                WHERE p.id_categoria = :id_categoria 
-                  AND p.estado_validacion = 'APROBADO' 
-                  AND p.estado_disponibilidad = 'DISPONIBLE'
-                  AND p.tokens_disponibles > 0
-                  AND p.id_usuario != :id_usuario_propio
-                ORDER BY es_favorito DESC, pl.posicionamiento_destacado DESC, pl.precio DESC, promedio_estrellas DESC
-            ");
-            
-            $stmtProf->execute([
-                ':id_categoria' => $categoriaDetectada['id_categoria'],
-                ':id_usuario_fav' => $idUsuario,
-                ':id_usuario_propio' => $idUsuario
-            ]);
-            $listaProfesionales = $stmtProf->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        $stmtC = $db->prepare("SELECT direccion_referencia, zona FROM clientes WHERE id_usuario = :id_usuario");
-        $stmtC->execute([':id_usuario' => $idUsuario]);
-        $clienteInfo = $stmtC->fetch(PDO::FETCH_ASSOC);
 
         $this->view('cliente/buscar_especialista', [
-            'titulo' => 'GEO-PRO | Detalles del Servicio',
-            'problemaOriginal' => $descripcionProblema,
-            'categoria' => $categoriaDetectada,
-            'profesionales' => $listaProfesionales,
-            'esBusquedaIA' => $esBusquedaIA,
-            'clienteInfo' => $clienteInfo,
-            'idProfSeleccionado' => $idProfSeleccionado
+            'titulo'             => 'FixGeo | Detalles del servicio',
+            'problemaOriginal'   => $descripcion,
+            'categoria'          => $categoria,
+            'categorias'         => $categorias,
+            'profesionales'      => $categoria ? $this->panel->profesionalesDeCategoria((int) $categoria['id_categoria'], $idUsuario) : [],
+            'esBusquedaIA'       => $esIA,
+            'clienteInfo'        => $this->perfilActual(),
+            'idProfSeleccionado' => $idProf,
         ]);
     }
 
-    public function registrarPedido() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/cliente/dashboard");
-            exit;
+    // ================= CREAR EL PEDIDO =================
+    public function registrarPedido()
+    {
+        $this->exigirCalificacion();
+        if (!$this->esPost()) {
+            $this->redirigir('/cliente/dashboard');
         }
 
-        $idUsuario = (int) $_SESSION['user_id'];
-        $idCategoria = (int) $_POST['id_categoria'];
-        $descripcion = trim($_POST['descripcion']);
-        $tipoAsignacion = $_POST['tipo_asignacion']; 
-        $idProfesionalSeleccionado = (int) ($_POST['id_profesional'] ?? 0);
+        $idUsuario     = (int) $_SESSION['user_id'];
+        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);   // 0 = que FixGeo asigne
+        $idCategoria   = (int) ($_POST['id_categoria'] ?? 0);
+        $descripcion   = trim((string) ($_POST['descripcion'] ?? ''));
 
         try {
-            $db = Database::getInstance()->getConnection();
+            $cliente = $this->perfilActual();
+            if (!$cliente || trim((string) $cliente['direccion_referencia']) === '') {
+                Flash::set('warning', 'Antes de pedir un servicio, completa tu dirección en "Mi perfil".');
+                $this->redirigir('/cliente/perfil');
+            }
 
-            $stmtC = $db->prepare("SELECT id_cliente, zona, direccion_referencia FROM clientes WHERE id_usuario = :id_usuario");
-            $stmtC->execute([':id_usuario' => $idUsuario]);
-            $cliente = $stmtC->fetch(PDO::FETCH_ASSOC);
+            $datos = [
+                'descripcion_problema' => $descripcion,
+                'direccion_servicio'   => $cliente['direccion_referencia'],
+                'macrodistrito'        => $cliente['macrodistrito'] ?? 'CENTRO',
+                'zona'                 => $cliente['zona'],
+                'latitud_destino'      => $cliente['latitud_predeterminada'] ?? -16.5,
+                'longitud_destino'     => $cliente['longitud_predeterminada'] ?? -68.15,
+            ];
 
-            $codigoSeguimiento = 'GEO-' . strtoupper(substr(md5(uniqid()), 0, 8));
+            $solicitudes = new Solicitud();
 
-            if ($tipoAsignacion === 'MANUAL' && $idProfesionalSeleccionado > 0) {
-                $stmtSol = $db->prepare("
-                    INSERT INTO solicitudes_servicio 
-                    (codigo_seguimiento, id_cliente, id_profesional, descripcion_problema, direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino, estado_servicio) 
-                    VALUES (:codigo, :idc, :idp, :desc, :dir, 'CENTRO', :zona, -16.5000, -68.1500, 'PENDIENTE')
-                ");
-                $stmtSol->execute([
-                    ':codigo' => $codigoSeguimiento,
-                    ':idc' => $cliente['id_cliente'],
-                    ':idp' => $idProfesionalSeleccionado,
-                    ':desc' => $descripcion,
-                    ':dir' => $cliente['direccion_referencia'],
-                    ':zona' => $cliente['zona']
-                ]);
+            if ($idProfesional > 0) {
+                $idSolicitud = $solicitudes->crear((int) $cliente['id_cliente'], $idProfesional, $datos);
+                Flash::set('success', 'Solicitud enviada. Te avisaremos cuando el técnico la acepte.');
             } else {
-                $stmtIA = $db->prepare("
-                    SELECT p.id_profesional 
-                    FROM profesionales p
-                    INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
-                    WHERE p.id_categoria = :id_cat AND p.id_usuario != :id_usu AND p.estado_disponibilidad = 'DISPONIBLE'
-                    ORDER BY pl.posicionamiento_destacado DESC, pl.precio DESC, RAND() LIMIT 1
-                ");
-                $stmtIA->execute([':id_cat' => $idCategoria, ':id_usu' => $idUsuario]);
-                $mejorProfesional = $stmtIA->fetchColumn();
-
-                if (!$mejorProfesional) {
-                    header("Location: " . BASE_URL . "/cliente/dashboard?error=sin_profesionales");
-                    exit;
+                if (!$this->panel->hayProfesionales($idCategoria, (string) $datos['macrodistrito'], $idUsuario)) {
+                    Flash::set('warning', 'Por ahora no hay técnicos disponibles de esa categoría en tu zona. Prueba con el catálogo de especialistas.');
+                    $this->redirigir('/cliente/especialistas');
                 }
-
-                $stmtSol = $db->prepare("
-                    INSERT INTO solicitudes_servicio 
-                    (codigo_seguimiento, id_cliente, id_profesional, descripcion_problema, direccion_servicio, macrodistrito, zona, latitud_destino, longitud_destino, estado_servicio) 
-                    VALUES (:codigo, :idc, :idp, :desc, :dir, 'CENTRO', :zona, -16.5000, -68.1500, 'PENDIENTE')
-                ");
-                $stmtSol->execute([
-                    ':codigo' => $codigoSeguimiento,
-                    ':idc' => $cliente['id_cliente'],
-                    ':idp' => $mejorProfesional,
-                    ':desc' => "[ASIGNACIÓN I.A. CASCADA] - " . $descripcion,
-                    ':dir' => $cliente['direccion_referencia'],
-                    ':zona' => $cliente['zona']
-                ]);
+                $idSolicitud = $solicitudes->crear((int) $cliente['id_cliente'], null, $datos, $idCategoria);
+                Flash::set('success', 'Estamos buscando al mejor técnico para ti. Te avisaremos apenas alguien acepte.');
             }
 
-            header("Location: " . BASE_URL . "/cliente/dashboard?success=ok");
-            exit;
-
-        } catch (Exception $e) {
-            header("Location: " . BASE_URL . "/cliente/dashboard?error=db");
-            exit;
+            $this->redirigir('/solicitud/detalle/' . $idSolicitud);
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+            $this->redirigir('/cliente/dashboard');
+        } catch (PDOException $e) {
+            error_log('[FixGeo] registrarPedido: ' . $e->getMessage());
+            Flash::set('danger', 'No pudimos registrar tu pedido. Inténtalo de nuevo en unos minutos.');
+            $this->redirigir('/cliente/dashboard');
         }
     }
 
-    /* ========================================================
-       3. MIS FAVORITOS
-       ======================================================== */
-    public function favoritos() {
-        $idUsuario = (int) $_SESSION['user_id'];
-        $db = Database::getInstance()->getConnection();
+    // ================= CATÁLOGO MANUAL =================
+    public function especialistas()
+    {
+        $idCategoria = (int) ($_GET['categoria'] ?? 0);
 
-        $stmtC = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id_usuario");
-        $stmtC->execute([':id_usuario' => $idUsuario]);
-        $idCliente = $stmtC->fetchColumn();
+        $this->view('cliente/especialistas', [
+            'titulo'          => 'FixGeo | Catálogo de técnicos',
+            'especialistas'   => $this->panel->catalogo($idCategoria, (int) $_SESSION['user_id']),
+            'categorias'      => $this->panel->categoriasActivas(),
+            'categoriaActual' => $idCategoria,
+        ]);
+    }
 
-        $favoritos = [];
-        if ($idCliente) {
-            $stmtFav = $db->prepare("
-                SELECT f.id_favorito, p.id_profesional, u.nombre, u.apellido, 
-                       c.nombre_categoria, c.icono_fa, pl.nombre_plan,
-                       COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas
-                FROM clientes_favoritos f
-                INNER JOIN profesionales p ON f.id_profesional = p.id_profesional
-                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-                INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-                INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
-                LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
-                WHERE f.id_cliente = :id_cliente
-                ORDER BY f.fecha_agregado DESC
-            ");
-            $stmtFav->execute([':id_cliente' => $idCliente]);
-            $favoritos = $stmtFav->fetchAll(PDO::FETCH_ASSOC);
+    public function solicitarManual()
+    {
+        $this->exigirCalificacion();
+        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
+        if ($this->esPost() && $idProfesional > 0) {
+            $this->redirigir('/cliente/buscarEspecialista?id_prof=' . $idProfesional);
         }
+        Flash::set('danger', 'No pudimos identificar al técnico seleccionado.');
+        $this->redirigir('/cliente/especialistas');
+    }
 
+    // ================= FAVORITOS =================
+    public function favoritos()
+    {
+        $cliente = $this->perfilActual();
         $this->view('cliente/favoritos', [
-            'titulo' => 'GEO-PRO | Mis Favoritos',
-            'favoritos' => $favoritos
+            'titulo'    => 'FixGeo | Mis favoritos',
+            'favoritos' => $cliente ? $this->panel->favoritos((int) $cliente['id_cliente']) : [],
         ]);
     }
 
-    public function eliminarFavorito($idFavorito) {
-        if (!isset($_SESSION['user_id'])) { header("Location: " . BASE_URL . "/auth/login"); exit; }
+    public function agregarFavorito($idProfesional = 0)
+    {
         try {
-            $db = Database::getInstance()->getConnection();
-            $stmt = $db->prepare("DELETE FROM clientes_favoritos WHERE id_favorito = :id");
-            $stmt->execute([':id' => (int) $idFavorito]);
-            header("Location: " . BASE_URL . "/cliente/favoritos?success=eliminado");
-        } catch (Exception $e) { header("Location: " . BASE_URL . "/cliente/favoritos?error=db"); }
-        exit;
+            $this->panel->agregarFavorito((int) $_SESSION['user_id'], (int) $idProfesional);
+            Flash::set('success', 'Técnico agregado a tus favoritos.');
+        } catch (PDOException $e) {
+            error_log('[FixGeo] agregarFavorito: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo agregar a favoritos.');
+        }
+        $this->volver('/cliente/favoritos');
     }
-    public function agregarFavorito($idProfesional) {
-        if (!isset($_SESSION['user_id'])) { 
-            header("Location: " . BASE_URL . "/auth/login"); 
-            exit; 
-        }
-        try {
-            $db = Database::getInstance()->getConnection();
-            
-            // Buscar el ID del cliente actual
-            $stmtC = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id_usuario");
-            $stmtC->execute([':id_usuario' => (int)$_SESSION['user_id']]);
-            $idCliente = $stmtC->fetchColumn();
 
-            if ($idCliente) {
-                // INSERT IGNORE evita que se duplique si el cliente hace doble clic
-                $stmt = $db->prepare("INSERT IGNORE INTO clientes_favoritos (id_cliente, id_profesional) VALUES (:idc, :idp)");
-                $stmt->execute([':idc' => $idCliente, ':idp' => (int)$idProfesional]);
-            }
-            
-            // Lo devolvemos a la misma página donde estaba
-            header("Location: " . $_SERVER['HTTP_REFERER']);
-        } catch (Exception $e) { 
-            header("Location: " . $_SERVER['HTTP_REFERER']); 
+    public function eliminarFavorito($idFavorito = 0)
+    {
+        try {
+            $this->panel->quitarFavorito((int) $_SESSION['user_id'], (int) $idFavorito);
+            Flash::set('success', 'Técnico quitado de tus favoritos.');
+        } catch (PDOException $e) {
+            error_log('[FixGeo] eliminarFavorito: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo quitar de favoritos.');
         }
+        $this->redirigir('/cliente/favoritos');
+    }
+
+    /** Vuelve a la página de origen solo si es de este mismo sitio. */
+    private function volver(string $respaldo): void
+    {
+        $ref = $_SERVER['HTTP_REFERER'] ?? '';
+        header('Location: ' . (str_starts_with($ref, BASE_URL) ? $ref : BASE_URL . $respaldo));
         exit;
     }
 
-  /* ========================================================
-       4. HISTORIAL DE SOLICITUDES (Corregido: Muestra TODAS)
-       ======================================================== */
-    public function historial() {
-        $idUsuario = (int) $_SESSION['user_id'];
-        $db = Database::getInstance()->getConnection();
-        
-        $stmtC = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id_usuario");
-        $stmtC->execute([':id_usuario' => $idUsuario]);
-        $idCliente = $stmtC->fetchColumn();
-
-        $pedidos = [];
-        if ($idCliente) {
-            // CORRECCIÓN: Quitamos el filtro de "FINALIZADA" para que muestre TODAS las solicitudes
-            $stmtSol = $db->prepare("
-                SELECT s.*, c.nombre_categoria, u.nombre as prof_nombre, u.apellido as prof_apellido, 
-                       COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas
-                FROM solicitudes_servicio s
-                INNER JOIN profesionales p ON s.id_profesional = p.id_profesional
-                INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-                INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-                LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
-                WHERE s.id_cliente = :id_cliente 
-                ORDER BY s.fecha_solicitud DESC
-            ");
-            $stmtSol->execute([':id_cliente' => $idCliente]);
-            $pedidos = $stmtSol->fetchAll(PDO::FETCH_ASSOC);
-        }
-
+    // ================= HISTORIAL =================
+    public function historial()
+    {
+        $cliente = $this->perfilActual();
         $this->view('cliente/historial', [
-            'titulo' => 'GEO-PRO | Mis Solicitudes',
-            'pedidos' => $pedidos
+            'titulo'  => 'FixGeo | Mis solicitudes',
+            'pedidos' => $cliente ? $this->panel->historial((int) $cliente['id_cliente']) : [],
         ]);
     }
 
-   /* ========================================================
-       5. PERFIL Y DIRECCIONES (Protegido contra cuelgues)
-       ======================================================== */
-    public function perfil() {
+    // ================= PERFIL =================
+    public function perfil()
+    {
         $idUsuario = (int) $_SESSION['user_id'];
-        $db = Database::getInstance()->getConnection();
-        
-        $stmtC = $db->prepare("
-            SELECT c.*, u.nombre, u.apellido, u.correo, u.celular 
-            FROM clientes c 
-            INNER JOIN usuarios u ON c.id_usuario = u.id_usuario 
-            WHERE c.id_usuario = :id_usuario
-        ");
-        $stmtC->execute([':id_usuario' => $idUsuario]);
-        $cliente = $stmtC->fetch(PDO::FETCH_ASSOC);
+        $cliente   = $this->perfilActual();
+        $error     = null;
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            try {
-                $zona = trim($_POST['zona'] ?? '');
-                $direccion = trim($_POST['direccion_referencia'] ?? '');
-                $lat = (float) ($_POST['latitud'] ?? -16.500000);
-                $lng = (float) ($_POST['longitud'] ?? -68.150000);
-                
-                $check = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id");
-                $check->execute([':id' => $idUsuario]);
-                
-                if ($check->fetchColumn()) {
-                    $stmtU = $db->prepare("UPDATE clientes SET zona = :zona, direccion_referencia = :dir, latitud_predeterminada = :lat, longitud_predeterminada = :lng WHERE id_usuario = :id");
-                    $stmtU->execute([':zona' => $zona, ':dir' => $direccion, ':lat' => $lat, ':lng' => $lng, ':id' => $idUsuario]);
-                } else {
-                    $stmtI = $db->prepare("INSERT INTO clientes (id_usuario, zona, direccion_referencia, latitud_predeterminada, longitud_predeterminada) VALUES (:id, :zona, :dir, :lat, :lng)");
-                    $stmtI->execute([':id' => $idUsuario, ':zona' => $zona, ':dir' => $direccion, ':lat' => $lat, ':lng' => $lng]);
-                }
-                
-                header("Location: " . BASE_URL . "/cliente/perfil?success=ok");
-                exit;
-            } catch (Exception $e) {
-                // SI FALLA, MUESTRA EL ERROR EN PANTALLA EN LUGAR DE CONGELARSE
-                die("<h2 style='color:red;'>Error de Base de Datos en Perfil: " . $e->getMessage() . "</h2>");
+        if ($this->esPost()) {
+            $lat = filter_var($_POST['latitud'] ?? null, FILTER_VALIDATE_FLOAT);
+            $lng = filter_var($_POST['longitud'] ?? null, FILTER_VALIDATE_FLOAT);
+            $datos = [
+                'zona'                 => trim((string) ($_POST['zona'] ?? '')),
+                'direccion_referencia' => trim((string) ($_POST['direccion_referencia'] ?? '')),
+                'macrodistrito'        => (string) ($_POST['macrodistrito'] ?? ''),
+                'latitud'              => ($lat !== false && abs($lat) <= 90)  ? $lat : ($cliente['latitud_predeterminada'] ?? -16.5),
+                'longitud'             => ($lng !== false && abs($lng) <= 180) ? $lng : ($cliente['longitud_predeterminada'] ?? -68.15),
+            ];
+
+            $errores = [];
+            if (mb_strlen($datos['direccion_referencia']) < 5 || mb_strlen($datos['direccion_referencia']) > 255) {
+                $errores[] = 'Ingresa una dirección de referencia (entre 5 y 255 caracteres).';
             }
+            if (mb_strlen($datos['zona']) < 2 || mb_strlen($datos['zona']) > 100) {
+                $errores[] = 'Ingresa tu zona o barrio.';
+            }
+            if (!isset(Catalogo::MACRODISTRITOS[$datos['macrodistrito']])) {
+                $errores[] = 'Selecciona tu macrodistrito.';
+            }
+
+            if (!$errores) {
+                try {
+                    $this->panel->guardarPerfil($idUsuario, $datos);
+                    Flash::set('success', 'Tus datos se guardaron correctamente.');
+                    $this->redirigir('/cliente/perfil');
+                } catch (PDOException $e) {
+                    error_log('[FixGeo] perfil: ' . $e->getMessage());
+                    $error = 'No pudimos guardar tus datos. Inténtalo de nuevo.';
+                }
+            } else {
+                $error = implode("\n", $errores);
+            }
+            $cliente = array_merge($cliente ?? [], [
+                'zona' => $datos['zona'], 'direccion_referencia' => $datos['direccion_referencia'],
+                'macrodistrito' => $datos['macrodistrito'],
+            ]);
         }
 
         $this->view('cliente/perfil', [
-            'titulo' => 'GEO-PRO | Mis Direcciones',
-            'cliente' => $cliente
+            'titulo'  => 'FixGeo | Mi perfil',
+            'cliente' => $cliente,
+            'error'   => $error,
         ]);
     }
 
-    /* ========================================================
-       ENDPOINT AJAX: RASTREAR AL PROFESIONAL ASIGNADO
-       ======================================================== */
-    public function rastrearProfesional($idSolicitud) {
-        if (!isset($_SESSION['user_id'])) exit;
-
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("
-            SELECT p.latitud_actual, p.longitud_actual 
-            FROM solicitudes_servicio s
-            INNER JOIN profesionales p ON s.id_profesional = p.id_profesional
-            WHERE s.id_solicitud = :id_sol
-        ");
-        $stmt->execute([':id_sol' => (int)$idSolicitud]);
-        $coords = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        header('Content-Type: application/json');
-        echo json_encode($coords ?: ['latitud_actual' => null, 'longitud_actual' => null]);
-        exit;
+    // ================= AJAX: ubicación del técnico (solo el cliente dueño, solo "en camino") =================
+    public function rastrearProfesional($idSolicitud = 0)
+    {
+        $coords = $this->panel->ubicacionTecnico((int) $idSolicitud, (int) $_SESSION['user_id']);
+        $this->jsonResponse($coords ?: ['latitud_actual' => null, 'longitud_actual' => null]);
     }
-    /* ========================================================
-       BUSCADOR MANUAL DE ESPECIALISTAS (Catálogo)
-       ======================================================== */
-    public function especialistas() {
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
+
+
+        // ================= UN CLIENTE OFRECE SERVICIOS (misma cuenta, sin registrarse de nuevo) =================
+    public function ofrecerServicios()
+    {
+        if ((int) $_SESSION['role_id'] === 3) {
+            Flash::set('info', 'Tu cuenta ya tiene un perfil de técnico. Usa "Modo técnico" cuando quieras.');
+            $this->redirigir('/profesional/dashboard');
         }
 
-        $db = Database::getInstance()->getConnection();
-        
-        // Filtro opcional por categoría
-        $filtroCategoria = (int) ($_GET['categoria'] ?? 0);
-        $params = [];
-        
-        $sql = "
-            SELECT p.id_profesional, u.nombre, u.apellido, c.nombre_categoria,
-                   pl.nombre_plan, pl.posicionamiento_destacado,
-                   p.tarifa_base, p.macrodistrito_base, p.zona_especifica,
-                   COALESCE(vw.promedio_estrellas, 5.0) AS promedio_estrellas,
-                   COALESCE(vw.total_resenas, 0) AS total_resenas
-            FROM profesionales p
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            INNER JOIN planes_suscripcion pl ON p.id_plan = pl.id_plan
-            LEFT JOIN vw_metricas_profesionales vw ON p.id_profesional = vw.id_profesional
-            WHERE p.estado_validacion = 'APROBADO' 
-              AND p.estado_disponibilidad = 'DISPONIBLE'
-              AND p.tokens_disponibles > 0
-        ";
+        $mapa = ['profesional' => 'TECNICO_PROFESIONAL', 'oficio' => 'OFICIO_EMPIRICO'];
+        $tipoUrl = (string) ($_GET['tipo'] ?? '');
+        $tipo    = $mapa[$tipoUrl] ?? null;
 
-        if ($filtroCategoria > 0) {
-            $sql .= " AND p.id_categoria = :id_categoria";
-            $params[':id_categoria'] = $filtroCategoria;
+        $error      = null;
+        $old        = [];
+        $categorias = $tipo ? $this->panel->categoriasParaPrestador($tipo) : [];
+
+        if ($tipo && $this->esPost()) {
+            $datos = array_map(fn($v) => is_string($v) ? trim($v) : $v, $_POST);
+            $datos['tipo_prestador'] = $tipo;
+            $old = $datos;
+
+            $errores = Validador::prestador($datos, $_FILES, $tipo);
+            if (!$errores) {
+                try {
+                    (new Usuario())->activarPerfilPrestador((int) $_SESSION['user_id'], $datos, $_FILES);
+                    $_SESSION['role_id'] = 3;
+                    Flash::set('success', '¡Listo! Enviamos tu perfil de técnico a revisión. Mientras validamos tus documentos puedes seguir usando FixGeo como cliente.');
+                    $this->redirigir('/profesional/dashboard');
+                } catch (PDOException $e) {
+                    error_log('[FixGeo] ofrecerServicios: ' . $e->getMessage());
+                    $error = 'No pudimos guardar tu perfil. Inténtalo de nuevo en unos minutos.';
+                } catch (Exception $e) {
+                    $error = $e->getMessage();
+                }
+            } else {
+                $error = implode("\n", $errores);
+            }
         }
 
-        // ORDEN CRÍTICO DE NEGOCIO: Premium primero, mejores calificados después
-        $sql .= " ORDER BY pl.posicionamiento_destacado DESC, pl.id_plan DESC, promedio_estrellas DESC";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $especialistas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Obtenemos categorías para el select del filtro
-        $categorias = $db->query("SELECT id_categoria, nombre_categoria FROM categorias WHERE estado = 1 ORDER BY nombre_categoria ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-        $this->view('cliente/especialistas', [
-            'titulo' => 'GEO-PRO | Catálogo de Profesionales',
-            'especialistas' => $especialistas,
-            'categorias' => $categorias,
-            'categoriaActual' => $filtroCategoria
+        $this->view('cliente/ofrecer_servicios', [
+            'titulo'        => 'FixGeo | Ofrecer mis servicios',
+            'tipoPrestador' => $tipo,
+            'tipoUrl'       => $tipoUrl,
+            'categorias'    => $categorias,
+            'error'         => $error,
+            'old'           => $old,
         ]);
     }
-
-    /* ========================================================
-       CONEXIÓN: ENVIAR AL CLIENTE A CREAR EL PEDIDO MANUAL
-       ======================================================== */
-    public function solicitarManual() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . BASE_URL . "/cliente/especialistas");
-            exit;
+        /** Enlace que usan las notificaciones: cliente/solicitud/ID */
+    public function solicitud($idSolicitud = 0)
+    {
+        $this->redirigir('/solicitud/detalle/' . (int) $idSolicitud);
+    }
+        /** Regla del manual: no se puede pedir otro servicio sin calificar el anterior. */
+    private function exigirCalificacion(): void
+    {
+        $cliente = $this->perfilActual();
+        if (!$cliente) {
+            return;
         }
-
-        $idProfesional = (int) ($_POST['id_profesional'] ?? 0);
-
-        if ($idProfesional > 0) {
-            // Redirige al formulario universal, pasándole el ID del técnico
-            header("Location: " . BASE_URL . "/cliente/buscarEspecialista?id_prof=" . $idProfesional);
-            exit;
+        $pendiente = $this->panel->servicioPorCalificar((int) $cliente['id_cliente']);
+        if ($pendiente) {
+            Flash::set('warning', 'Antes de pedir otro servicio, califica el anterior (' . $pendiente['codigo_seguimiento'] . '). Solo toma un minuto y ayuda a otros clientes.');
+            $this->redirigir('/solicitud/calificar/' . (int) $pendiente['id_solicitud']);
         }
-
-        header("Location: " . BASE_URL . "/cliente/especialistas?error=id_invalido");
-        exit;
     }
 }

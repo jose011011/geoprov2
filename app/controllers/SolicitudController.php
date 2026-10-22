@@ -1,177 +1,188 @@
 <?php
-require_once "../app/models/Usuario.php";
-
-class SolicitudController extends Controller {
+class SolicitudController extends Controller
+{
     private Solicitud $solicitudModel;
     private Usuario $usuarioModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (!isset($_SESSION['user_id'])) {
-            header("Location: " . BASE_URL . "/auth/login");
-            exit;
+            $this->ir('/auth/login');
         }
         if (!in_array((int) $_SESSION['role_id'], [3, 4], true)) {
-            header("Location: " . BASE_URL . "/admin/dashboard");
-            exit;
+            $this->ir('/admin/dashboard');
         }
         $this->solicitudModel = new Solicitud();
-        $this->usuarioModel = new Usuario();
+        $this->usuarioModel   = new Usuario();
     }
 
+    private function ir(string $ruta): void
+    {
+        header('Location: ' . BASE_URL . $ruta);
+        exit;
+    }
+
+
+
     /** Formulario para solicitar un servicio a un profesional específico */
-    public function crear($idProfesional = null) {
-        if (!$idProfesional) {
-            header("Location: " . BASE_URL . "/cliente/dashboard");
-            exit;
+    public function crear($idProfesional = null)
+    {
+        $idProfesional = (int) $idProfesional;
+        $idUsuario     = (int) $_SESSION['user_id'];
+        if ($idProfesional <= 0) {
+            $this->ir('/cliente/dashboard');
         }
 
         $db = Database::getInstance()->getConnection();
-        
-        // SPRINT 1: Agregamos p.id_usuario y p.tarifa_base
-        $stmtProf = $db->prepare("
-            SELECT p.id_profesional, p.id_usuario, p.macrodistrito_base, p.zona_especifica, p.tarifa_base, u.nombre, u.apellido, c.nombre_categoria
-            FROM profesionales p
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            WHERE p.id_profesional = :id AND p.estado_validacion = 'APROBADO' AND p.estado_disponibilidad = 'DISPONIBLE'
-            LIMIT 1
-        ");
-        $stmtProf->execute([':id' => (int) $idProfesional]);
-        $profesional = $stmtProf->fetch();
+        $stmt = $db->prepare("
+            SELECT p.id_profesional, p.id_usuario, p.macrodistrito_base, p.zona_especifica, p.tarifa_base,
+                   u.nombre, u.apellido, c.nombre_categoria
+              FROM profesionales p
+             INNER JOIN usuarios u ON u.id_usuario = p.id_usuario
+             INNER JOIN categorias c ON c.id_categoria = p.id_categoria
+             WHERE p.id_profesional = :id AND p.estado_validacion = 'APROBADO' AND p.estado_disponibilidad = 'DISPONIBLE'
+             LIMIT 1");
+        $stmt->execute([':id' => $idProfesional]);
+        $profesional = $stmt->fetch();
 
         if (!$profesional) {
-            header("Location: " . BASE_URL . "/cliente/dashboard?error=no_disponible");
-            exit;
+            $this->ir('/cliente/dashboard?error=no_disponible');
+        }
+        if ((int) $profesional['id_usuario'] === $idUsuario) {
+            $this->ir('/cliente/dashboard?error=auto_contratacion');
         }
 
-        // SEGURIDAD ANTI-FRAUDE: Evitar autocontratación
-        if ((int)$profesional['id_usuario'] === (int)$_SESSION['user_id']) {
-            header("Location: " . BASE_URL . "/cliente/dashboard?error=auto_contratacion");
-            exit;
+        // Un profesional que contrata como cliente: se crea su perfil de cliente si aún no existe
+        $clienteModel = new Cliente();
+        $cliente = $clienteModel->buscarPorUsuario($idUsuario);
+        if (!$cliente && (int) $_SESSION['role_id'] === 3) {
+            $cliente = $clienteModel->crearDesdeProfesional($idUsuario);
         }
-
-        $stmtCli = $db->prepare("SELECT id_cliente, direccion_referencia, zona, latitud_predeterminada, longitud_predeterminada FROM clientes WHERE id_usuario = :id LIMIT 1");
-        $stmtCli->execute([':id' => $_SESSION['user_id']]);
-        $cliente = $stmtCli->fetch();
+        if (!$cliente) {
+            $this->ir('/cliente/perfil');
+        }
 
         $error = null;
-        $old = [];
+        $old   = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
-                // Se ejecuta la inserción en la tabla solicitudes_servicio
-                $idSolicitud = $this->solicitudModel->crear((int) $cliente['id_cliente'], (int) $idProfesional, $_POST);
-                $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CREAR_SOLICITUD', 'solicitudes_servicio', $idSolicitud);
-                
-                require_once "../app/models/Notificacion.php";
+                $idSolicitud = $this->solicitudModel->crear((int) $cliente['id_cliente'], $idProfesional, $_POST);
+                $this->usuarioModel->auditar($idUsuario, 'CREAR_SOLICITUD', 'solicitudes_servicio', $idSolicitud);
+
                 $notifModel = new Notificacion();
-                
-                if ($profesional['id_usuario']) {
-                    $notifModel->crear((int) $profesional['id_usuario'], 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', BASE_URL . '/profesional/solicitudes');
-                }
-                
-                header("Location: " . BASE_URL . "/solicitud/detalle/" . $idSolicitud . "?creada=1");
-                exit;
-            } catch (Exception $e) {
-                // DEPURACIÓN: Capturamos el error real de la base de datos para saber qué está fallando
-                $msg = $e->getMessage();
-                if (str_contains($msg, 'vencida')) {
-                    $error = "Este profesional tiene su membresía vencida.";
-                } elseif (str_contains($msg, 'validado documentalmente')) {
-                    $error = "Este profesional aún no ha sido validado.";
-                } elseif (str_contains($msg, 'DISPONIBLE')) {
-                    $error = "Este profesional ya no está disponible.";
-                } else {
-                    // AQUÍ ESTÁ LA MAGIA: Si hay un error SQL, te lo mostrará en pantalla
-                    $error = "Error del Sistema (SQL): " . $msg; 
-                }
-                $old = $_POST;
+                $notifModel->crear((int) $profesional['id_usuario'], 'NUEVA_SOLICITUD', 'Tienes una nueva solicitud de servicio.', BASE_URL . '/profesional/solicitudes');
+
+                $this->ir('/solicitud/detalle/' . $idSolicitud . '?creada=1');
+            } catch (DomainException $e) {
+                $error = $e->getMessage();
+                $old   = $_POST;
+            } catch (Throwable $e) {
+                error_log('[FixGeo] SolicitudController::crear: ' . $e->getMessage());
+                $error = 'No se pudo crear la solicitud. Inténtalo de nuevo en unos minutos.';
+                $old   = $_POST;
             }
         }
 
         $this->view('cliente/solicitud_form', [
-            'titulo'      => 'GEO-PRO | Solicitar Servicio',
+            'titulo'      => 'FixGeo | Solicitar servicio',
             'profesional' => $profesional,
             'cliente'     => $cliente,
             'error'       => $error,
-            'old'         => $old
+            'old'         => $old,
         ]);
     }
 
-    public function detalle($idSolicitud = null) {
-        $solicitud = $this->solicitudModel->obtenerPorId((int) $idSolicitud);
+   public function detalle($idSolicitud = null)
+    {
+        $idSolicitud = (int) $idSolicitud;
+        $solicitud   = $this->solicitudModel->obtenerParaUsuario($idSolicitud, (int) $_SESSION['user_id']);
+
         if (!$solicitud) {
-            header("Location: " . BASE_URL . "/cliente/dashboard");
-            exit;
+            Flash::set('danger', 'No encontramos esa solicitud.');
+            $this->ir($this->inicioPorRol());
         }
+
+        $yaCalificada = true;
+        if ($solicitud['estado_servicio'] === 'FINALIZADA') {
+            try {
+                $yaCalificada = (new Calificacion())->yaCalificada($idSolicitud);
+            } catch (Throwable $e) {
+                error_log('[FixGeo] detalle/yaCalificada: ' . $e->getMessage());
+            }
+        }
+
         $this->view('cliente/solicitud_detalle', [
-            'titulo'    => 'GEO-PRO | Solicitud ' . $solicitud['codigo_seguimiento'],
-            'solicitud' => $solicitud
+            'titulo'       => 'FixGeo | Solicitud ' . $solicitud['codigo_seguimiento'],
+            'solicitud'    => $solicitud,
+            'yaCalificada' => $yaCalificada,
         ]);
     }
 
-    public function misSolicitudes() {
+    public function misSolicitudes()
+    {
         $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT id_cliente FROM clientes WHERE id_usuario = :id LIMIT 1");
-        $stmt->execute([':id' => $_SESSION['user_id']]);
-        $cliente = $stmt->fetch();
-
-        $solicitudes = $cliente ? $this->solicitudModel->listarPorCliente((int) $cliente['id_cliente']) : [];
+        $stmt = $db->prepare('SELECT id_cliente FROM clientes WHERE id_usuario = :id LIMIT 1');
+        $stmt->execute([':id' => (int) $_SESSION['user_id']]);
+        $idCliente = $stmt->fetchColumn();
 
         $this->view('cliente/mis_solicitudes', [
-            'titulo'      => 'GEO-PRO | Mis Solicitudes',
-            'solicitudes' => $solicitudes
+            'titulo'      => 'FixGeo | Mis solicitudes',
+            'solicitudes' => $idCliente ? $this->solicitudModel->listarPorCliente((int) $idCliente) : [],
         ]);
     }
-    
-    public function actualizarEstado() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $idSolicitud = (int) ($_POST['id_solicitud'] ?? 0);
-            $nuevoEstado = trim($_POST['estado'] ?? '');
 
-            $db = Database::getInstance()->getConnection();
-            $stmt = $db->prepare("SELECT id_profesional FROM profesionales WHERE id_usuario = :id_usuario LIMIT 1");
-            $stmt->execute([':id_usuario' => $_SESSION['user_id']]);
-            $profesional = $stmt->fetch();
+    /** Cambio de estado hecho por el profesional (misma lógica que ProfesionalController::cambiarEstadoSolicitud) */
+    public function actualizarEstado()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->ir('/profesional/solicitudes');
+        }
 
-            if (!$profesional) {
-                header("Location: " . BASE_URL . "/profesional/solicitudes?error=acceso_denegado");
-                exit;
+        $idSolicitud = (int) ($_POST['id_solicitud'] ?? 0);
+        $nuevoEstado = trim($_POST['estado'] ?? '');
+        $tiempo      = (int) ($_POST['tiempo_estimado'] ?? 0);
+        $precio      = (float) ($_POST['precio_acordado'] ?? 0);
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare('SELECT id_profesional FROM profesionales WHERE id_usuario = :u LIMIT 1');
+        $stmt->execute([':u' => (int) $_SESSION['user_id']]);
+        $idProfesional = (int) $stmt->fetchColumn();
+        if ($idProfesional <= 0) {
+            $this->ir('/profesional/solicitudes?error=acceso_denegado');
+        }
+
+        try {
+            if ($nuevoEstado === 'ACEPTADA') {
+                if (!$this->solicitudModel->reclamarTrabajo($idSolicitud, $idProfesional)) {
+                    $this->ir('/profesional/solicitudes?error=' . urlencode('Otro profesional aceptó este trabajo antes que tú.'));
+                }
+            } else {
+                $this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, $idProfesional, $tiempo > 0 ? $tiempo : null, $precio > 0 ? $precio : null);
             }
-
-            try {
-              $tiempoEstimado = isset($_POST['tiempo_estimado']) ? (int) $_POST['tiempo_estimado'] : null;
-$precioAcordado = isset($_POST['precio_acordado']) ? (float) $_POST['precio_acordado'] : null;
-
-$this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int)$profesional['id_profesional'], $tiempoEstimado, $precioAcordado);
-                $this->usuarioModel->auditar((int) $_SESSION['user_id'], 'CAMBIO_ESTADO_' . $nuevoEstado, 'solicitudes_servicio', $idSolicitud);
-
-                header("Location: " . BASE_URL . "/profesional/solicitudes?exito=estado_actualizado");
-                exit;
-            } catch (Exception $e) {
-                header("Location: " . BASE_URL . "/profesional/solicitudes?error=" . urlencode($e->getMessage()));
-                exit;
-            }
+            $this->ir('/profesional/solicitudes?exito=estado_actualizado');
+        } catch (DomainException $e) {
+            $this->ir('/profesional/solicitudes?error=' . urlencode($e->getMessage()));
+        } catch (Throwable $e) {
+            error_log('[FixGeo] SolicitudController::actualizarEstado: ' . $e->getMessage());
+            $this->ir('/profesional/solicitudes?error=' . urlencode('No se pudo actualizar la solicitud. Inténtalo de nuevo.'));
         }
     }
 
-    public function calificar($idSolicitud = null) {
-        require_once "../app/models/Calificacion.php";
-        $calificacionModel = new Calificacion();
-
+    public function calificar($idSolicitud = null)
+    {
         $idSolicitud = (int) $idSolicitud;
-        $solicitud = $this->solicitudModel->obtenerPorId($idSolicitud);
+        $idUsuario   = (int) $_SESSION['user_id'];
+        $solicitud   = $this->solicitudModel->obtenerParaUsuario($idSolicitud, $idUsuario);
 
-        // Si la solicitud no existe o no está FINALIZADA, redirige
-        if (!$solicitud || $solicitud['estado_servicio'] !== 'FINALIZADA') {
-            header("Location: " . BASE_URL . "/solicitud/misSolicitudes");
-            exit;
+        // Solo el cliente de una solicitud FINALIZADA puede calificar
+        if (!$solicitud || (int) $solicitud['cliente_id_usuario'] !== $idUsuario || $solicitud['estado_servicio'] !== 'FINALIZADA') {
+            $this->ir('/solicitud/misSolicitudes');
         }
 
-        // Si ya fue calificada, redirige al detalle
+        $calificacionModel = new Calificacion();
         if ($calificacionModel->yaCalificada($idSolicitud)) {
-            header("Location: " . BASE_URL . "/solicitud/detalle/" . $idSolicitud);
-            exit;
+            $this->ir('/solicitud/detalle/' . $idSolicitud);
         }
 
         $error = null;
@@ -179,72 +190,78 @@ $this->solicitudModel->cambiarEstado($idSolicitud, $nuevoEstado, (int)$profesion
             try {
                 $calificacionModel->crear(
                     $idSolicitud,
-                    (int) $_SESSION['user_id'],
+                    $idUsuario,
                     (int) ($_POST['puntuacion_general'] ?? 0),
                     (int) ($_POST['puntualidad'] ?? 0),
                     (int) ($_POST['calidad_trabajo'] ?? 0),
-                    $_POST['comentario'] ?? null
+                    trim($_POST['comentario'] ?? '') ?: null
                 );
-                header("Location: " . BASE_URL . "/cliente/dashboard?calificado=1");
-                exit;
-            } catch (Exception $e) {
+                Flash::set('success', '¡Gracias por calificar!');
+                $this->ir('/cliente/dashboard?calificado=1');
+            } catch (DomainException $e) {
                 $error = $e->getMessage();
+            } catch (Throwable $e) {
+                error_log('[FixGeo] SolicitudController::calificar: ' . $e->getMessage());
+                $error = 'No se pudo guardar tu calificación. Inténtalo de nuevo.';
             }
         }
 
         $this->view('cliente/calificar', [
-            'titulo'    => 'GEO-PRO | Calificar servicio',
+            'titulo'    => 'FixGeo | Calificar servicio',
             'solicitud' => $solicitud,
-            'error'     => $error
+            'error'     => $error,
         ]);
     }
 
-
-
-    public function guardarCalificacion() {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header("Location: " . BASE_URL . "/cliente/historial");
-        exit;
-    }
-
-    $idSolicitud = (int)($_POST['id_solicitud'] ?? 0);
-    $puntuacion = (int)($_POST['puntuacion_general'] ?? 5);
-    $comentario = trim($_POST['comentario'] ?? '');
-
-    if ($idSolicitud > 0 && $puntuacion >= 1 && $puntuacion <= 5) {
-        $db = Database::getInstance()->getConnection();
-        
-        $stmt = $db->prepare("
-            INSERT INTO calificaciones (id_solicitud, puntuacion_general, puntualidad, calidad_trabajo, comentario)
-            VALUES (:id_sol, :puntos, 5, 5, :comentario)
-            ON DUPLICATE KEY UPDATE 
-                puntuacion_general = VALUES(puntuacion_general),
-                comentario = VALUES(comentario)
-        ");
-        $stmt->execute([
-            ':id_sol' => $idSolicitud,
-            ':puntos' => $puntuacion,
-            ':comentario' => $comentario
-        ]);
-    }
-
-    header("Location: " . BASE_URL . "/cliente/solicitudDetalle/" . $idSolicitud . "?success=calificado");
-    exit;
-}
-
-    // SPRINT 2.5: Pantalla del Profesional para emitir GPS
-    public function mapaViaje($idSolicitud = null) {
-        $solicitud = $this->solicitudModel->obtenerPorId((int) $idSolicitud);
-        
-        // Verificamos que exista y que el profesional asignado sea el que está logueado
-        if (!$solicitud) {
-            header("Location: " . BASE_URL . "/profesional/solicitudes");
-            exit;
+    /** Calificación rápida (una sola estrella para los tres criterios) */
+    public function guardarCalificacion()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->ir('/cliente/historial');
         }
 
-        $this->view('profesional/mapa_viaje', [
-            'titulo' => 'GEO-PRO | Viaje en Curso',
-            'solicitud' => $solicitud
-        ]);
+        $idSolicitud = (int) ($_POST['id_solicitud'] ?? 0);
+        $idUsuario   = (int) $_SESSION['user_id'];
+        $puntuacion  = (int) ($_POST['puntuacion_general'] ?? 0);
+        $comentario  = trim($_POST['comentario'] ?? '');
+
+        $solicitud = $this->solicitudModel->obtenerParaUsuario($idSolicitud, $idUsuario);
+        if ($solicitud && (int) $solicitud['cliente_id_usuario'] === $idUsuario
+            && $solicitud['estado_servicio'] === 'FINALIZADA' && $puntuacion >= 1 && $puntuacion <= 5) {
+            try {
+                $calificacionModel = new Calificacion();
+                if (!$calificacionModel->yaCalificada($idSolicitud)) {
+                    $calificacionModel->crear($idSolicitud, $idUsuario, $puntuacion, $puntuacion, $puntuacion, $comentario !== '' ? $comentario : null);
+                }
+            } catch (Throwable $e) {
+                error_log('[FixGeo] SolicitudController::guardarCalificacion: ' . $e->getMessage());
+            }
+        }
+        $this->ir('/solicitud/detalle/' . $idSolicitud . '?success=calificado');
+    }
+
+    /** El mapa del viaje es del profesional: se delega a su controlador, que ya valida que la solicitud es suya */
+    public function mapaViaje($idSolicitud = null)
+    {
+        $this->ir('/profesional/mapaViaje/' . (int) $idSolicitud);
+    }
+
+
+        public function cancelar($idSolicitud = null)
+    {
+        $idSolicitud = (int) $idSolicitud;
+        if (!$this->esPost()) {
+            $this->ir('/solicitud/detalle/' . $idSolicitud);
+        }
+        try {
+            $this->solicitudModel->cancelarPorCliente($idSolicitud, (int) $_SESSION['user_id']);
+            Flash::set('success', 'Cancelaste la solicitud.');
+        } catch (DomainException $e) {
+            Flash::set('danger', $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[FixGeo] cancelar: ' . $e->getMessage());
+            Flash::set('danger', 'No se pudo cancelar. Inténtalo de nuevo.');
+        }
+        $this->ir('/solicitud/detalle/' . $idSolicitud);
     }
 }

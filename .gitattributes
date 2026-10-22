@@ -1,2 +1,5 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+app/config/env.local.php
+app/config/env.production.php
+public/uploads/*
+!public/uploads/.htaccess
+*.log

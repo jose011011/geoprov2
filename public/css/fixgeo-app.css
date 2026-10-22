@@ -1,0 +1,163 @@
+/* FixGeo - componentes de la aplicación (menú, panel del cliente, solicitudes) */
+
+/* ===== Menú principal (debajo de la barra) ===== */
+.fx-subnav { background: var(--fx-white); border-bottom: 1px solid var(--fx-line); }
+.fx-subnav .nav { flex-wrap: nowrap; overflow-x: auto; gap: .25rem; padding: .45rem 0; scrollbar-width: none; }
+.fx-subnav .nav::-webkit-scrollbar { display: none; }
+.fx-subnav .nav-link {
+  display: inline-flex; align-items: center; gap: .5rem; white-space: nowrap;
+  padding: .5rem .95rem; border-radius: 12px; color: var(--fx-muted); font-weight: 600; font-size: .88rem;
+}
+.fx-subnav .nav-link:hover { color: var(--fx-blue); background: var(--fx-bg); }
+.fx-subnav .nav-link.active { color: var(--fx-blue); background: rgba(29, 63, 180, .09); }
+
+/* ===== Piezas del panel ===== */
+.fx-hero-card {
+  position: relative; overflow: hidden; border-radius: 24px; padding: 2rem;
+  background: var(--fx-white); border: 1px solid var(--fx-line); box-shadow: var(--fx-shadow);
+}
+.fx-hero-card::before {
+  content: ""; position: absolute; width: 360px; height: 360px; right: -120px; top: -160px;
+  border-radius: 50%; background: var(--fx-gradient); opacity: .16; filter: blur(30px); pointer-events: none;
+}
+.fx-hero-card > * { position: relative; }
+.fx-page-title { font-weight: 800; letter-spacing: -.02em; }
+.min-w-0 { min-width: 0; }
+
+.fx-stat { background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px; padding: 1rem 1.25rem; height: 100%; }
+.fx-stat .num { font-size: 1.8rem; font-weight: 800; color: var(--fx-blue); line-height: 1; }
+.fx-stat small { color: var(--fx-muted); font-weight: 500; }
+
+.fx-quick {
+  display: flex; align-items: center; gap: .9rem; height: 100%; padding: 1rem 1.1rem;
+  background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px;
+  color: var(--fx-ink); text-decoration: none; transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.fx-quick:hover { transform: translateY(-3px); box-shadow: var(--fx-shadow); border-color: var(--fx-sky); color: var(--fx-ink); }
+.fx-quick .ico { width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; font-size: 1.1rem; background: rgba(29, 63, 180, .09); color: var(--fx-blue); }
+.fx-quick .t { font-weight: 700; line-height: 1.2; }
+.fx-quick small { color: var(--fx-muted); }
+
+.fx-cat-tile {
+  display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center; height: 100%;
+  background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px; padding: 1.25rem .75rem;
+  color: var(--fx-ink); text-decoration: none; transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.fx-cat-tile:hover { transform: translateY(-3px); box-shadow: var(--fx-shadow); border-color: var(--fx-sky); color: var(--fx-ink); }
+.fx-cat-tile .ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 1.3rem; background: rgba(56, 189, 248, .14); color: var(--fx-blue); }
+.fx-cat-tile .nombre { font-weight: 600; font-size: .9rem; }
+
+/* ===== Tarjetas de técnico ===== */
+.fx-pro { position: relative; background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 18px; padding: 1.1rem; height: 100%; transition: box-shadow .2s, border-color .2s; }
+.fx-pro:hover { box-shadow: var(--fx-shadow); }
+.fx-pro.premium { border: 2px solid transparent; background: linear-gradient(var(--fx-white), var(--fx-white)) padding-box, var(--fx-gradient) border-box; }
+.fx-pro .avatar { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; background: var(--fx-gradient); color: var(--fx-ink); flex-shrink: 0; }
+.fx-pro .fav { position: absolute; top: .9rem; right: .9rem; color: var(--fx-muted); text-decoration: none; }
+.fx-pro .fav.on, .fx-pro .fav:hover { color: #ef4444; }
+.fx-stars { color: #f59e0b; font-size: .85rem; letter-spacing: 1px; }
+
+/* ===== Elegir cómo te atienden ===== */
+.fx-mode {
+  display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; cursor: pointer;
+  background: var(--fx-white); border: 2px solid var(--fx-line); border-radius: 16px; padding: 1rem; transition: .2s;
+}
+.fx-mode:hover:not(:disabled) { border-color: var(--fx-sky); }
+.fx-mode.active { border-color: var(--fx-blue); box-shadow: 0 0 0 4px rgba(29, 63, 180, .12); }
+.fx-mode:disabled { opacity: .55; cursor: not-allowed; }
+.fx-mode .ico { width: 46px; height: 46px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; background: rgba(29, 63, 180, .09); color: var(--fx-blue); font-size: 1.1rem; }
+.fx-pro-pick { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
+.fx-pro-pick .fx-pro { border-width: 2px; }
+.fx-pro-pick.active .fx-pro { border-color: var(--fx-blue); box-shadow: 0 0 0 4px rgba(29, 63, 180, .12); }
+
+/* ===== Pedidos ===== */
+.fx-order { background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 16px; padding: 1.1rem 1.25rem; transition: box-shadow .2s; }
+.fx-order:hover { box-shadow: var(--fx-shadow); }
+.fx-filter .btn { border-radius: 999px; }
+
+.fx-steps { display: flex; list-style: none; padding: 0; margin: 0; overflow-x: auto; }
+.fx-steps li { flex: 1; min-width: 92px; position: relative; text-align: center; padding-top: 2rem; font-size: .78rem; color: var(--fx-muted); }
+.fx-steps li::before { content: ""; position: absolute; top: .55rem; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: var(--fx-line); z-index: 1; }
+.fx-steps li::after { content: ""; position: absolute; top: 1.05rem; left: -50%; width: 100%; height: 3px; background: var(--fx-line); }
+.fx-steps li:first-child::after { display: none; }
+.fx-steps li.done::before, .fx-steps li.done::after, .fx-steps li.current::after { background: var(--fx-blue); }
+.fx-steps li.current::before { background: var(--fx-white); border: 5px solid var(--fx-blue); }
+.fx-steps li.done, .fx-steps li.current { color: var(--fx-ink); font-weight: 600; }
+
+/* ===== Calificación con estrellas ===== */
+.fx-rate { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; }
+.fx-rate input { position: absolute; opacity: 0; pointer-events: none; }
+.fx-rate label { font-size: 2rem; line-height: 1; color: #d1d5db; cursor: pointer; padding: 0 .1rem; transition: color .15s; }
+.fx-rate input:checked ~ label, .fx-rate label:hover, .fx-rate label:hover ~ label { color: #f59e0b; }
+.fx-rate input:focus-visible + label { outline: 2px solid var(--fx-sky); border-radius: 6px; }
+
+
+
+
+
+
+
+
+
+
+/* ===== Módulo técnico ===== */
+.fx-switch .form-check-input { width: 3.4em; height: 1.8em; cursor: pointer; }
+.fx-switch .form-check-input:checked { background-color: #198754; border-color: #198754; }
+.fx-bignum { font-size: 2.2rem; font-weight: 800; color: var(--fx-blue); line-height: 1; }
+.fx-job { border-left: 5px solid var(--fx-sky); }
+.fx-job.nueva { border-left-color: #f59e0b; }
+.fx-job.activa { border-left-color: var(--fx-blue); }
+.fx-job.fin { border-left-color: #198754; }
+
+
+
+
+
+/* ===== Planes ===== */
+.fx-plan-card { display: block; height: 100%; background: var(--fx-white); border: 2px solid var(--fx-line); border-radius: 18px; padding: 1.25rem; cursor: pointer; transition: .2s; }
+.fx-plan-card:hover { border-color: var(--fx-sky); }
+.btn-check:checked + .fx-plan-card { border-color: var(--fx-blue); box-shadow: 0 0 0 4px rgba(29, 63, 180, .12); }
+.fx-plan-card .precio { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+
+
+
+/* ===== Selector de íconos ===== */
+.fx-icono-vista { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: rgba(56, 189, 248, .14); color: var(--fx-blue); font-size: 1.15rem; }
+.fx-icono-opcion { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .7rem .25rem; background: var(--fx-white); border: 1px solid var(--fx-line); border-radius: 12px; font-size: .72rem; line-height: 1.15; color: var(--fx-ink); cursor: pointer; transition: .15s; }
+.fx-icono-opcion i { font-size: 1.4rem; color: var(--fx-blue); }
+.fx-icono-opcion:hover { border-color: var(--fx-sky); background: var(--fx-bg); }
+.fx-icono-opcion.sel { border-color: var(--fx-blue); box-shadow: 0 0 0 3px rgba(29, 63, 180, .12); }
+
+
+
+
+/* ===== Chat ===== */
+.fx-chat { display: flex; flex-direction: column; height: calc(100vh - 230px); min-height: 460px; }
+.fx-chat-head, .fx-chat-form, .fx-chat-aviso { flex: 0 0 auto; }
+.fx-chat-msgs { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem; background: var(--fx-bg); }
+.fx-fecha { text-align: center; margin: .75rem 0; }
+.fx-fecha span { display: inline-block; padding: .15rem .75rem; border-radius: 999px; background: #e4eaf6; color: var(--fx-muted); font-size: .72rem; font-weight: 600; }
+.fx-msg { max-width: 78%; width: fit-content; margin-bottom: .55rem; padding: .5rem .8rem; border-radius: 16px; font-size: .92rem; overflow-wrap: anywhere; }
+.fx-msg.me { margin-left: auto; background: var(--fx-blue); color: var(--fx-white); border-bottom-right-radius: 4px; }
+.fx-msg.other { background: var(--fx-white); border: 1px solid var(--fx-line); border-bottom-left-radius: 4px; }
+.fx-msg small { display: block; margin-top: .2rem; font-size: .68rem; opacity: .7; text-align: right; }
+.fx-msg img { display: block; width: 240px; max-width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: .35rem; cursor: zoom-in; background: #dfe6f3; }
+.fx-msg.sistema { margin-inline: auto; max-width: 92%; text-align: center; background: transparent; border: 0; color: var(--fx-muted); font-size: .8rem; }
+.fx-chat-aviso { padding: .45rem 1rem; font-size: .76rem; text-align: center; background: #eef3ff; color: #3b4a7a; border-top: 1px solid var(--fx-line); }
+.fx-chat-aviso.cerrado { background: #fff4e0; color: #7a5a1a; }
+@media (max-width: 575.98px) { .fx-chat { height: calc(100vh - 190px); } .fx-msg { max-width: 88%; } }
+
+
+/* ===== Menú principal: barra en computadora, panel lateral en celular ===== */
+@media (max-width: 991.98px) {
+  .fx-subnav { border-bottom: 0; background: transparent; }
+  .fx-subnav .offcanvas-lg { --bs-offcanvas-width: 290px; z-index: 1060; }
+  .offcanvas-backdrop { z-index: 1055; }
+  .fx-subnav .nav { flex-direction: column; flex-wrap: nowrap; overflow: visible; gap: .2rem; padding: 0; }
+  .fx-subnav .nav-link { width: 100%; padding: .85rem 1rem; font-size: 1rem; }
+}
+
+/* Titulares con la tipografía de marca */
+.fx-page-title, .fx-brand, .fx-stat .num, .fx-bignum, .fx-plan-card .precio {
+  font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  letter-spacing: -.02em;
+}

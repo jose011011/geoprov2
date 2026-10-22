@@ -1,208 +1,87 @@
-<?php require_once "../app/views/layouts/header.php"; ?>
+<?php
+require __DIR__ . '/../layouts/header.php';
 
-<style>
-    /* Ocultamos el header normal */
-    .geo-navbar { display: none !important; }
-    body { background-color: #f3f4f7; margin: 0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+$tarjetas = [
+    ['clientes',            'fa-users',          'Clientes registrados',  false],
+    ['tecnicos_aprobados',  'fa-user-check',     'Técnicos aprobados',    false],
+    ['solicitudes_activas', 'fa-bolt',           'Solicitudes en curso',  false],
+    ['finalizadas_mes',     'fa-flag-checkered', 'Finalizadas este mes',  false],
+    ['ingresos_mes',        'fa-coins',          'Ingresos del mes (Bs)', true],
+    ['solicitudes_total',   'fa-clipboard-list', 'Solicitudes totales',   false],
+];
+$totalEstados = max(1, array_sum($estados));
+$colorEstado  = ['PENDIENTE' => 'warning', 'ACEPTADA' => 'info', 'EN_CAMINO' => 'primary', 'EN_PROCESO' => 'primary', 'FINALIZADA' => 'success', 'CANCELADA' => 'secondary'];
+?>
 
-    /* Layout Principal */
-    .admin-wrapper { display: flex; width: 100%; min-height: 100vh; }
-    
-    /* Sidebar Fijo */
-    .admin-sidebar {
-        width: 260px; background-color: #1e1e2d; color: #a2a3b7;
-        position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000;
-        transition: all 0.3s ease; overflow-y: auto;
-    }
-    .sidebar-profile { padding: 30px 20px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .sidebar-avatar { width: 70px; height: 70px; border-radius: 50%; background-color: #e83e8c; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin: 0 auto 10px; border: 3px solid #2b2b40; }
-    .sidebar-profile h6 { color: #ffffff; font-weight: 700; margin-bottom: 2px; }
-    .sidebar-profile p { font-size: 0.75rem; color: #a2a3b7; margin-bottom: 0; }
+<div class="container py-4">
+    <h1 class="fx-page-title h3 mb-3">Panel de administración</h1>
 
-    .sidebar-menu { padding: 20px 0; list-style: none; margin: 0; }
-    .menu-title { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #6c7293; padding: 10px 25px; letter-spacing: 1px; }
-    .sidebar-menu li a { display: flex; align-items: center; padding: 12px 25px; color: #a2a3b7; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s; border-left: 3px solid transparent; }
-    .sidebar-menu li a i { width: 25px; font-size: 1.1rem; }
-    .sidebar-menu li a:hover { color: #ffffff; background-color: #1b1b29; }
-    .sidebar-menu li a.active { color: #ffffff; background-color: #1b1b29; border-left-color: #e83e8c; }
+        <?php if ((int) $ind['tecnicos_pendientes'] > 0 || (int) $ind['pagos_pendientes'] > 0 || (int) $ind['categorias_pendientes'] > 0): ?>
+        <div class="row g-3 mb-4">
+            <?php if ((int) $ind['tecnicos_pendientes'] > 0): ?>
+                <div class="col-md-6"><a class="fx-quick" href="<?= BASE_URL ?>/admin/revisionTecnicos">
+                    <span class="ico"><i class="fa-solid fa-user-clock"></i></span>
+                    <span><span class="t d-block"><?= (int) $ind['tecnicos_pendientes'] ?> técnico(s) esperan validación</span><small>Revisar documentos</small></span>
+                </a></div>
+            <?php endif; ?>
+            <?php if ((int) $ind['pagos_pendientes'] > 0): ?>
+                <div class="col-md-6"><a class="fx-quick" href="<?= BASE_URL ?>/admin/revisionPagos">
+                    <span class="ico"><i class="fa-solid fa-money-check-dollar"></i></span>
+                    <span><span class="t d-block"><?= (int) $ind['pagos_pendientes'] ?> pago(s) por confirmar</span><small>Revisar comprobantes</small></span>
+                </a></div>
+            <?php endif; ?>
+                        <?php if ((int) $ind['categorias_pendientes'] > 0): ?>
+                <div class="col-md-6"><a class="fx-quick" href="<?= BASE_URL ?>/admin/categorias">
+                    <span class="ico"><i class="fa-solid fa-tags"></i></span>
+                    <span><span class="t d-block"><?= (int) $ind['categorias_pendientes'] ?> especialidad(es) nueva(s) por aprobar</span><small>Sugeridas por técnicos al registrarse</small></span>
+                </a></div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
-    /* Contenido Principal */
-    .admin-main-content { flex: 1; margin-left: 260px; min-width: 0; transition: all 0.3s ease; }
-    .admin-topbar { background-color: #ffffff; height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); position: sticky; top: 0; z-index: 999; }
-    .btn-toggle-sidebar { background: none; border: none; font-size: 1.5rem; color: #495057; cursor: pointer; display: none; }
-    .topbar-logout { background: #fef2f2; color: #dc2626; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.2s; }
-    .topbar-logout:hover { background: #dc2626; color: #ffffff; }
+    <div class="row g-3 mb-4">
+        <?php foreach ($tarjetas as [$k, $icono, $texto, $dinero]): ?>
+            <div class="col-6 col-lg-4"><div class="fx-stat d-flex align-items-center gap-3">
+                <span class="fx-quick" style="padding:0;border:0;width:auto;pointer-events:none;"><span class="ico"><i class="fa-solid <?= $icono ?>"></i></span></span>
+                <div><div class="num"><?= $dinero ? number_format((float) $ind[$k], 0) : (int) $ind[$k] ?></div><small><?= $texto ?></small></div>
+            </div></div>
+        <?php endforeach; ?>
+    </div>
 
-    @media (max-width: 991px) {
-        .admin-sidebar { transform: translateX(-100%); }
-        .admin-sidebar.show { transform: translateX(0); }
-        .admin-main-content { margin-left: 0; }
-        .btn-toggle-sidebar { display: block; }
-        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
-        .sidebar-overlay.show { display: block; }
-    }
-
-    /* Tarjetas y Tablas */
-    .dashboard-content { padding: 25px; }
-    .page-title { font-weight: 700; color: #3f4254; font-size: 1.5rem; margin-bottom: 20px; }
-    
-    .kpi-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.03); display: flex; flex-direction: column; border: none; }
-    .kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-    .kpi-number { font-size: 2rem; font-weight: 800; color: #181c32; line-height: 1; }
-    .kpi-label { font-size: 0.8rem; font-weight: 700; color: #b5b5c3; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-icon { padding: 10px; border-radius: 10px; font-size: 1.2rem; color: #fff; }
-    
-    .table-card { background: #fff; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.03); padding: 20px; border: none; overflow: hidden;}
-    .table th { font-size: 0.75rem; text-transform: uppercase; color: #b5b5c3; border-bottom: 1px dashed #ebedf3; padding: 15px 10px; }
-    .table td { vertical-align: middle; border-bottom: 1px dashed #ebedf3; padding: 15px 10px; color: #3f4254; font-weight: 500; font-size: 0.9rem; }
-</style>
-
-<div class="admin-wrapper">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <aside class="admin-sidebar" id="adminSidebar">
-        <div class="sidebar-profile">
-            <div class="sidebar-avatar"><?php echo strtoupper(substr($_SESSION['user_nombre'] ?? 'A', 0, 1)); ?></div>
-            <h6><?= htmlspecialchars($_SESSION['user_nombre'] ?? 'Administrador') ?></h6>
-            <p>Super Administrador</p>
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <h2 class="h5 fw-bold mb-2">Solicitudes por estado</h2>
+            <div class="card"><div class="card-body">
+                <?php if (!$estados): ?><div class="text-muted small">Aún no hay solicitudes.</div><?php endif; ?>
+                <?php foreach ($estados as $estado => $total): ?>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1"><span><?= Catalogo::etiquetaEstado($estado) ?></span><strong><?= (int) $total ?></strong></div>
+                        <div class="progress" style="height:8px;"><div class="progress-bar bg-<?= $colorEstado[$estado] ?? 'secondary' ?>" style="width: <?= round($total * 100 / $totalEstados) ?>%"></div></div>
+                    </div>
+                <?php endforeach; ?>
+            </div></div>
         </div>
 
-        <ul class="sidebar-menu">
-            <li class="menu-title">Resumen</li>
-            <li><a href="<?= BASE_URL ?>/admin/dashboard" class="active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
-            <li><a href="<?= BASE_URL ?>/admin/auditoria"><i class="fa-solid fa-shield-halved"></i> Auditoría</a></li>
-            
-            <li class="menu-title">Gestión de Usuarios</li>
-            <li><a href="<?= BASE_URL ?>/admin/profesionales"><i class="fa-solid fa-users-gear"></i> Profesionales</a></li>
-            <li><a href="<?= BASE_URL ?>/admin/clientes"><i class="fa-solid fa-users"></i> Clientes</a></li>
-            
-            <li class="menu-title">Finanzas y Configuración</li>
-            <li><a href="<?= BASE_URL ?>/admin/pagos"><i class="fa-solid fa-money-check-dollar"></i> Pagos y Tokens</a></li>
-            <li><a href="<?= BASE_URL ?>/admin/planes"><i class="fa-solid fa-gem"></i> Planes (Oro, Plata)</a></li>
-            <li><a href="<?= BASE_URL ?>/admin/categorias"><i class="fa-solid fa-layer-group"></i> Categorías</a></li>
-            <li><a href="<?= BASE_URL ?>/admin/reportes"><i class="fa-solid fa-chart-line"></i> Reportes</a></li>
-        </ul>
-    </aside>
-
-    <main class="admin-main-content">
-        <header class="admin-topbar">
-            <button class="btn-toggle-sidebar" id="btnToggleSidebar"><i class="fa-solid fa-bars"></i></button>
-            <div class="d-none d-md-block"><span class="text-muted fw-bold">Plataforma GEO-PRO</span></div>
-            <a href="<?= BASE_URL ?>/auth/logout" class="topbar-logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Cerrar sesión</a>
-        </header>
-
-        <div class="dashboard-content">
-            <h3 class="page-title">Dashboard Operativo</h3>
-
-            <div class="row g-4 mb-4">
-                <div class="col-md-3 col-6">
-                    <div class="kpi-card" style="border-bottom: 4px solid #f6c23e;">
-                        <div class="kpi-top"><span class="kpi-label">Por Validar</span><div class="kpi-icon" style="background: #f6c23e;"><i class="fa-solid fa-user-clock"></i></div></div>
-                        <div class="kpi-number"><?= (int) ($stats['pendientes'] ?? 0) ?></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                    <div class="kpi-card" style="border-bottom: 4px solid #1cc88a;">
-                        <div class="kpi-top"><span class="kpi-label">Aprobados</span><div class="kpi-icon" style="background: #1cc88a;"><i class="fa-solid fa-user-shield"></i></div></div>
-                        <div class="kpi-number"><?= (int) ($stats['aprobados'] ?? 0) ?></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                    <div class="kpi-card" style="border-bottom: 4px solid #36b9cc;">
-                        <div class="kpi-top"><span class="kpi-label">Clientes</span><div class="kpi-icon" style="background: #36b9cc;"><i class="fa-solid fa-users"></i></div></div>
-                        <div class="kpi-number"><?= (int) ($stats['total_clientes'] ?? 0) ?></div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6">
-                    <div class="kpi-card" style="border-bottom: 4px solid #858796;">
-                        <div class="kpi-top"><span class="kpi-label">Servicios</span><div class="kpi-icon" style="background: #858796;"><i class="fa-solid fa-briefcase"></i></div></div>
-                        <div class="kpi-number"><?= (int) ($stats['total_solicitudes'] ?? 0) ?></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-card">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-                    <h5 class="fw-bold mb-0">Control de Profesionales</h5>
-                    <div class="btn-group mt-3 mt-md-0 shadow-sm">
-                        <a href="?estado=PENDIENTE" class="btn btn-sm btn-outline-warning <?= ($filtroActual ?? '') === 'PENDIENTE' ? 'active' : '' ?>">Pendientes</a>
-                        <a href="?estado=APROBADO" class="btn btn-sm btn-outline-success <?= ($filtroActual ?? '') === 'APROBADO' ? 'active' : '' ?>">Aprobados</a>
-                        <a href="?estado=RECHAZADO" class="btn btn-sm btn-outline-danger <?= ($filtroActual ?? '') === 'RECHAZADO' ? 'active' : '' ?>">Rechazados</a>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Profesional</th>
-                                <th>Especialidad</th>
-                                <th>Clasificación</th>
-                                <th>Plan / Nivel</th>
-                                <th>Estado</th>
-                                <th class="text-end">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (isset($profesionales) && is_array($profesionales)): ?>
-                                <?php foreach ($profesionales as $p): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-bold text-dark"><?= htmlspecialchars(($p['nombre'] ?? '') . ' ' . ($p['apellido'] ?? '')) ?></div>
-                                            <small class="text-muted">CI/NIT: <?= htmlspecialchars($p['numero_documento'] ?? 'S/N') ?></small>
-                                        </td>
-                                        <td><span class="badge bg-light text-secondary border"><?= htmlspecialchars($p['nombre_categoria'] ?? 'Sin Categoría') ?></span></td>
-                                        <td>
-                                            <?php if (($p['tipo_prestador'] ?? '') === 'TECNICO_PROFESIONAL'): ?>
-                                                <span class="text-primary fw-bold small"><i class="fa-solid fa-user-graduate"></i> Profesional</span>
-                                            <?php else: ?>
-                                                <span class="text-warning text-dark fw-bold small"><i class="fa-solid fa-hammer"></i> Empírico</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php 
-                                                $codigoPlan = strtolower($p['nombre_plan'] ?? '');
-                                                $nombrePlanDisplay = 'Bronce (Gratuito)';
-                                                if (strpos($codigoPlan, 'basico') !== false || strpos($codigoPlan, 'plata') !== false) {
-                                                    $nombrePlanDisplay = 'Plata (Básico)';
-                                                } elseif (strpos($codigoPlan, 'premium') !== false || strpos($codigoPlan, 'oro') !== false) {
-                                                    $nombrePlanDisplay = 'Oro (Premium)';
-                                                }
-                                            ?>
-                                            <span class="badge bg-dark text-white fw-bold"><i class="fa-solid fa-gem text-warning me-1"></i> Plan <?= $nombrePlanDisplay ?></span>
-                                        </td>
-                                        <td>
-                                            <span class="badge rounded-pill <?= claseBadgeEstado($p['estado_validacion'] ?? '') ?>"><?= htmlspecialchars($p['estado_validacion'] ?? 'PENDIENTE') ?></span>
-                                        </td>
-                                        <td class="text-end">
-                                            <a href="<?= BASE_URL ?>/admin/verProfesional/<?= $p['id_profesional'] ?? 0 ?>" class="btn btn-sm <?= ($p['estado_validacion'] ?? '') === 'PENDIENTE' ? 'btn-primary' : 'btn-light border text-dark' ?> fw-bold px-3">
-                                                <?= ($p['estado_validacion'] ?? '') === 'PENDIENTE' ? 'Revisar' : 'Ver Perfil' ?>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                            <?php if (empty($profesionales)): ?>
-                                <tr><td colspan="6" class="text-center py-4 text-muted"><i class="fa-solid fa-folder-open fa-2x mb-2 opacity-50"></i><br>No hay registros.</td></tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="col-lg-7">
+            <h2 class="h5 fw-bold mb-2">Últimas solicitudes</h2>
+            <div class="card"><div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Código</th><th>Cliente</th><th>Técnico</th><th>Estado</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($ultimas as $s): ?>
+                        <tr>
+                            <td class="small"><?= Security::e($s['codigo_seguimiento']) ?><div class="text-muted"><?= date('d/m H:i', strtotime($s['fecha_solicitud'])) ?></div></td>
+                            <td class="small"><?= Security::e($s['cliente_nombre'] . ' ' . $s['cliente_apellido']) ?><div class="text-muted"><?= Security::e($s['nombre_categoria'] ?? '') ?></div></td>
+                            <td class="small"><?= $s['prof_nombre'] ? Security::e($s['prof_nombre'] . ' ' . $s['prof_apellido']) : '<span class="text-muted">Sin asignar</span>' ?></td>
+                            <td><?= Catalogo::badgeEstado($s['estado_servicio']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$ultimas): ?><tr><td colspan="4" class="text-center text-muted py-4">Sin solicitudes todavía.</td></tr><?php endif; ?>
+                    </tbody>
+                </table>
+            </div></div>
         </div>
-    </main>
+    </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const btnToggle = document.getElementById('btnToggleSidebar');
-    const sidebar = document.getElementById('adminSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-
-    function toggleMenu() { sidebar.classList.toggle('show'); overlay.classList.toggle('show'); }
-    if(btnToggle) btnToggle.addEventListener('click', toggleMenu);
-    if(overlay) overlay.addEventListener('click', toggleMenu);
-});
-</script>
-
-<?php require_once "../app/views/layouts/footer.php"; ?>
+<?php require __DIR__ . '/../layouts/footer.php'; ?>
